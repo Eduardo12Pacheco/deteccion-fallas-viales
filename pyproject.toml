@@ -138,6 +138,12 @@ pretty = true
 module = ["rdv.adapters.training.*"]
 disallow_untyped_decorators = false
 
+[[tool.mypy.overrides]]
+# ONNX Runtime ships no type information (decision D6 allows this for
+# third-party packages without types).
+module = ["onnxruntime", "onnxruntime.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]

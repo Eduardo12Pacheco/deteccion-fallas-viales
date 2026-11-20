@@ -25,6 +25,13 @@ def benchmark(
     out: Annotated[
         Path, typer.Option("--out", help="JSON file receiving the benchmark report.")
     ] = DEFAULT_OUTPUT,
+    checkpoint: Annotated[
+        Path | None,
+        typer.Option(
+            "--checkpoint",
+            help="Torch checkpoint directory for the optional GPU row.",
+        ),
+    ] = None,
 ) -> None:
     """Measure inference latency and video throughput on the local machine."""
 
@@ -32,7 +39,9 @@ def benchmark(
         settings = Settings.from_env()
         configure(settings)
         detector = composition.build_detector(settings, model=model)
-        gpu_detector = composition.build_benchmark_gpu_detector(settings, model=model)
+        gpu_detector = composition.build_benchmark_gpu_detector(
+            settings, model=model, checkpoint=checkpoint
+        )
         result = benchmark_model(
             detector,
             gpu_detector=gpu_detector,

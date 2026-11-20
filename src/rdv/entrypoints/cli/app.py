@@ -8,8 +8,10 @@ from rdv.entrypoints.cli.data import data_app
 from rdv.entrypoints.cli.detect import detect as detect_command
 from rdv.entrypoints.cli.doctor import doctor as doctor_command
 from rdv.entrypoints.cli.evaluate import evaluate as evaluate_command
+from rdv.entrypoints.cli.export import export as export_command
 from rdv.entrypoints.cli.models import models_app
 from rdv.entrypoints.cli.samples import samples as samples_command
+from rdv.entrypoints.cli.train import train as train_command
 
 app = typer.Typer(
     name="rdv",
@@ -39,16 +41,6 @@ def main_callback(
 
 
 @app.command()
-def train() -> None:
-    """Fine-tune the detector from a configuration file."""
-
-
-@app.command()
-def export() -> None:
-    """Export a checkpoint to ONNX."""
-
-
-@app.command()
 def serve() -> None:
     """Start the local web app."""
 
@@ -59,7 +51,9 @@ app.command()(benchmark_command)
 app.command()(detect_command)
 app.command()(doctor_command)
 app.command()(evaluate_command)
+app.command()(export_command)
 app.command()(samples_command)
+app.command()(train_command)
 
 
 def main() -> None:

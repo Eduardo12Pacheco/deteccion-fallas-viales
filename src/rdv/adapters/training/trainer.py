@@ -14,7 +14,9 @@ import csv
 import hashlib
 import json
 import math
+import platform
 import random
+import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -40,6 +42,7 @@ from rdv.hashing import sha256_file
 CHECKPOINT_SCHEMA = "rdv.train.checkpoint/v1"
 BENCHMARK_SCHEMA = "rdv.train.benchmark/v1"
 LOG_SCHEMA = "rdv.train.log/v1"
+RUN_SCHEMA = "rdv.train.run/v1"
 DEFAULT_RUN_DIR = Path("runs/train")
 CPU_MICRO_BATCH_CAP = 4
 
@@ -95,27 +98,35 @@ def resolve_base_checkpoint(config: TrainConfig, *, offline: bool = False) -> Pa
     if local is not None:
         weights = local / "model.safetensors"
         verify_weights(weights, config.model.weights_sha256)
+        if not (local / "config.json").is_file():
+            raise ModelError(
+                f"Checkpoint directory {local} has no config.json; "
+                "downloading only the weights would build the wrong architecture"
+            )
         return local
     if offline:
         raise ModelError(
             f"RDV_OFFLINE is set and base checkpoint {config.model.hf_id!r} is not local"
         )
     try:
-        from huggingface_hub import hf_hub_download
+        from huggingface_hub import snapshot_download
     except ImportError as exc:  # pragma: no cover - the train extra provides it
         raise ModelError("huggingface_hub is required to download the base checkpoint") from exc
     try:
-        weights_path = Path(
-            hf_hub_download(
+        # config.json is mandatory: without it transformers falls back to the
+        # default RTDetrV2Config (different widths) and silently re-initialises
+        # most of the checkpoint, which would not be the pinned fine-tune.
+        snapshot = Path(
+            snapshot_download(
                 repo_id=config.model.hf_id,
-                filename="model.safetensors",
                 revision=config.model.revision,
+                allow_patterns=["config.json", "model.safetensors", "preprocessor_config.json"],
             )
         )
     except Exception as exc:  # network and hub errors share one user-facing message
         raise ModelError(f"Cannot download base checkpoint {config.model.hf_id!r}: {exc}") from exc
-    verify_weights(weights_path, config.model.weights_sha256)
-    return weights_path.parent
+    verify_weights(snapshot / "model.safetensors", config.model.weights_sha256)
+    return snapshot
 
 
 def load_training_model(
@@ -204,6 +215,63 @@ def _atomic_torch_save(path: Path, payload: dict[str, Any]) -> None:
     temporary = path.with_name(path.name + ".tmp")
     torch.save(payload, temporary)
     temporary.replace(path)
+
+
+def _git_sha() -> str | None:
+    """Return the committed revision, or ``None`` outside a git checkout."""
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    sha = completed.stdout.strip()
+    return sha or None
+
+
+def _driver_version() -> str | None:
+    """Best-effort NVIDIA driver version without adding a dependency."""
+    version_file = Path("/proc/driver/nvidia/version")
+    try:
+        text = version_file.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    for token in text.split():
+        if token[:1].isdigit() and token.count(".") >= 1:
+            return token
+    return None
+
+
+def environment_metadata(device: str) -> dict[str, Any]:
+    """Record the software/hardware facts a reproducible run must publish (S9)."""
+    cuda_available = bool(torch.cuda.is_available())
+    gpu = torch.cuda.get_device_name(0) if cuda_available else None
+    return {
+        "device": device,
+        "gpu": gpu,
+        "versions": {
+            "torch": torch.__version__,
+            "torchvision": _module_version("torchvision"),
+            "transformers": _module_version("transformers"),
+            "cuda": torch.version.cuda,
+            "nvidia_driver": _driver_version() if cuda_available else None,
+            "python": platform.python_version(),
+            "platform": platform.platform(),
+        },
+    }
+
+
+def _module_version(name: str) -> str | None:
+    try:
+        import importlib.metadata
+
+        return importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:  # pragma: no cover - optional stacks
+        return None
 
 
 class RtDetrTrainer:
@@ -348,7 +416,10 @@ class RtDetrTrainer:
         device_type = "cuda" if device == "cuda" else "cpu"
 
         def probe(size: int) -> int:
-            dataset = self._make_dataset(self._train_repository, training=True, max_images=size * 2)
+            # The probe runs 20 real steps, so it needs at least 20 batches.
+            dataset = self._make_dataset(
+                self._train_repository, training=True, max_images=size * 20
+            )
             if dataset is None:
                 raise DatasetError("Training split is empty")
             generator = torch.Generator().manual_seed(self.config.seed)
@@ -412,6 +483,8 @@ class RtDetrTrainer:
         run_dir = request.run_dir
         run_dir.mkdir(parents=True, exist_ok=True)
         micro_batch = self._micro_batch_for(device)
+        if device == "cuda":
+            torch.cuda.reset_peak_memory_stats()
         accum_steps = max(1, math.ceil(self.config.train.effective_batch / micro_batch))
         train_dataset = self._make_dataset(
             self._train_repository,
@@ -565,6 +638,12 @@ class RtDetrTrainer:
                 generator=generator,
                 best_metric=best_metric,
             )
+            self._write_run_metadata(
+                run_dir,
+                device=device,
+                epochs_run=epochs_completed,
+                started=started,
+            )
             if request.max_steps is not None and optimizer_steps >= request.max_steps:
                 stop = True
             if time.perf_counter() - started > self.config.budget.max_hours * 3600.0:
@@ -579,6 +658,29 @@ class RtDetrTrainer:
             best_metric=best_metric if best_metric > 0.0 else None,
             losses=tuple(losses),
         )
+
+    def _write_run_metadata(
+        self,
+        run_dir: Path,
+        *,
+        device: str,
+        epochs_run: int,
+        started: float,
+    ) -> None:
+        """Persist the S9/T10 run record next to the checkpoints and logs."""
+        peak = int(torch.cuda.max_memory_allocated()) if device == "cuda" else 0
+        payload: dict[str, Any] = {
+            "schema": RUN_SCHEMA,
+            "git_sha": _git_sha(),
+            "config_hash": self.config_hash,
+            "seed": self.config.seed,
+            "epochs_run": epochs_run,
+            "wall_clock_s": round(time.perf_counter() - started, 3),
+            "peak_memory_allocated_gb": round(peak / GIB, 4),
+            "vram_cap_gb": self.config.budget.vram_cap_gb,
+            **environment_metadata(device),
+        }
+        _atomic_json(run_dir / "run.json", payload)
 
     def _benchmark(
         self,

@@ -171,3 +171,22 @@ def test_validate_returns_a_bounded_map(tmp_path: Path) -> None:
     score = trainer._validate(model, dataset, "cpu")
 
     assert 0.0 <= score <= 1.0
+
+
+def test_fit_writes_run_metadata_for_the_reports(tmp_path: Path) -> None:
+    import json
+
+    trainer = _setup(tmp_path)
+    run_dir = tmp_path / "run"
+
+    result = trainer.train(TrainingRequest(run_dir=run_dir, max_steps=1))
+
+    payload = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    assert payload["schema"] == "rdv.train.run/v1"
+    assert payload["config_hash"] == trainer.config_hash
+    assert payload["seed"] == 42
+    assert payload["device"] == "cpu"
+    assert payload["epochs_run"] == result.epochs_completed == 1
+    assert payload["wall_clock_s"] >= 0.0
+    assert payload["peak_memory_allocated_gb"] >= 0.0
+    assert "torch" in payload["versions"]

@@ -5,7 +5,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from rdv.adapters.inference.preprocess import INPUT_SIZE, preprocess_image
+from rdv.adapters.inference import preprocess
+from rdv.adapters.inference.preprocess import INPUT_SIZE, preprocess_image, resize_linear
 
 
 def _gradient(width: int, height: int) -> np.ndarray:
@@ -71,3 +72,28 @@ def test_invalid_images_are_rejected(image: np.ndarray) -> None:
 def test_invalid_size_is_rejected() -> None:
     with pytest.raises(ValueError):
         preprocess_image(_gradient(10, 10), size=0)
+
+
+def test_numpy_fallback_matches_opencv_bilinear_resize() -> None:
+    cv2 = pytest.importorskip("cv2")
+    rng = np.random.default_rng(42)
+    for height, width, size in ((53, 37, 640), (10, 100, 8), (600, 600, 640), (600, 720, 640)):
+        image = rng.integers(0, 256, size=(height, width, 3), dtype=np.uint8)
+        expected = cv2.resize(image, (size, size), interpolation=cv2.INTER_LINEAR)
+        actual = resize_linear(image, size)
+        assert actual.shape == expected.shape
+        assert int(np.abs(actual.astype(np.int16) - expected.astype(np.int16)).max()) <= 1
+
+
+def test_preprocess_still_works_when_opencv_is_not_bundled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(preprocess, "cv2", None)
+
+    tensor = preprocess_image(_gradient(37, 53))
+    image = _gradient(37, 53)
+    reference = preprocess_image(image)
+
+    assert tensor.shape == reference.shape == (1, 3, INPUT_SIZE, INPUT_SIZE)
+    assert tensor.dtype == np.float32
+    assert int(np.abs(tensor - reference).max() * 255) <= 2

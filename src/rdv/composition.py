@@ -8,6 +8,7 @@ inference, model-store and reporting wiring.
 from __future__ import annotations
 
 import importlib
+import importlib.util
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -30,7 +31,6 @@ from rdv.adapters.inference.preprocess import INPUT_SIZE
 from rdv.adapters.inference.providers import available_providers
 from rdv.adapters.media.images import PillowImageSource
 from rdv.adapters.media.renderer import PillowRenderer
-from rdv.adapters.media.video import OpenCvVideoSink, OpenCvVideoSource
 from rdv.adapters.models.manifest import ModelManifest, default_manifest_path
 from rdv.adapters.models.store import CachedModelStore
 from rdv.adapters.reporting.detections_json import DetectionsJsonWriter
@@ -39,12 +39,14 @@ from rdv.application.ports import (
     DEFAULT_SCORE_THRESHOLD,
     Detector,
     ProgressSink,
+    VideoSink,
+    VideoSource,
 )
 from rdv.application.ports import (
     EvaluationReportWriter as EvaluationReportWriterPort,
 )
 from rdv.config.settings import Settings
-from rdv.errors import DatasetError, MissingExtraError, ModelError
+from rdv.errors import DatasetError, MediaError, MissingExtraError, ModelError
 from rdv.hashing import sha256_file
 
 
@@ -128,14 +130,45 @@ def build_detector(
     )
 
 
-def build_video_source(path: Path) -> OpenCvVideoSource:
+def video_available() -> bool:
+    """Return whether OpenCV video decoding is installed in this build.
+
+    The portable desktop bundle omits OpenCV to stay inside the S15 size
+    budget, so the web app uses this probe to explain a video upload instead
+    of calling it corrupt media.
+    """
+    return importlib.util.find_spec("cv2") is not None
+
+
+def _video_adapter(name: str) -> Any:
+    """Import the OpenCV video adapter, reporting a build without it clearly.
+
+    The portable desktop bundle deliberately omits OpenCV (its codec payload
+    would exceed the 250 MB bundle budget), so image analysis keeps working and
+    a video request fails with a documented ``MediaError`` instead of an
+    ``ImportError`` traceback. The CLI install always ships OpenCV (D7).
+    """
+    try:
+        return importlib.import_module(f"rdv.adapters.media.{name}")
+    except ImportError as exc:
+        raise MediaError(
+            "Video analysis is not available in this build (OpenCV is missing). "
+            "Use the CLI installation or analyze an image."
+        ) from exc
+
+
+def build_video_source(path: Path) -> VideoSource:
     """Open a video through the OpenCV adapter (S6)."""
-    return OpenCvVideoSource(path)
+    module = _video_adapter("video")
+    source: VideoSource = module.OpenCvVideoSource(path)
+    return source
 
 
-def build_video_sink() -> OpenCvVideoSink:
+def build_video_sink() -> VideoSink:
     """Atomic ``mp4v`` encoder for annotated videos (S6)."""
-    return OpenCvVideoSink()
+    module = _video_adapter("video")
+    sink: VideoSink = module.OpenCvVideoSink()
+    return sink
 
 
 def _torch_cuda_name() -> str | None:

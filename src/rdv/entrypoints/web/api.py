@@ -69,6 +69,14 @@ def sniff_media_kind(path: Path) -> JobKind:
         pass
     else:
         return "image"
+    if not composition.video_available():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "Video analysis is not available in this desktop bundle; "
+                "upload an image or use the CLI installation."
+            ),
+        )
     try:
         source = composition.build_video_source(path)
     except MediaError as exc:

@@ -232,3 +232,22 @@ def test_missing_model_reports_503_with_the_pull_hint(tmp_path: Path) -> None:
         response = client.get("/api/model")
         assert response.status_code == 503
         assert "rdv models pull" in response.json()["detail"]
+
+
+def test_video_upload_explains_when_the_bundle_has_no_opencv(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from fastapi import HTTPException
+
+    from rdv import composition
+    from rdv.entrypoints.web import api
+
+    monkeypatch.setattr(composition, "video_available", lambda: False)
+    upload = tmp_path / "clip.mp4"
+    upload.write_bytes(b"not really a video")
+
+    with pytest.raises(HTTPException) as excinfo:
+        api.sniff_media_kind(upload)
+
+    assert excinfo.value.status_code == 422
+    assert "desktop bundle" in str(excinfo.value.detail)

@@ -38,12 +38,13 @@ from rdv.adapters.reporting.summary_md import SummaryWriter
 from rdv.application.ports import (
     DEFAULT_SCORE_THRESHOLD,
     Detector,
+    ProgressSink,
 )
 from rdv.application.ports import (
     EvaluationReportWriter as EvaluationReportWriterPort,
 )
 from rdv.config.settings import Settings
-from rdv.errors import DatasetError, ModelError
+from rdv.errors import DatasetError, MissingExtraError, ModelError
 
 
 def load_dataset_lock(path: Path) -> DatasetLock:
@@ -157,11 +158,13 @@ def build_benchmark_gpu_detector(
     *,
     model: str | None = None,
     manifest: ModelManifest | None = None,
+    checkpoint: Path | None = None,
 ) -> Detector | None:
     """Build the optional torch CUDA detector used by ``rdv benchmark`` (S11).
 
-    The ``TorchDetector`` adapter arrives with T9; until then, or on a CPU-only
-    host, this returns ``None`` and the benchmark reports the CPU row only.
+    ``--checkpoint`` (or a directory passed as ``--model``) selects the torch
+    weights; an ONNX file is the CPU artifact and has no torch counterpart, so
+    this returns ``None`` and the benchmark reports the CPU row only.
     """
     if _torch_cuda_name() is None:
         return None
@@ -174,7 +177,18 @@ def build_benchmark_gpu_detector(
         return None
     store = build_model_store(settings, manifest=manifest)
     selected = model or settings.model
-    path = store.resolve(selected)
+    if checkpoint is not None:
+        path = Path(checkpoint)
+    elif Path(selected).is_dir():
+        path = Path(selected)
+    else:
+        try:
+            resolved = store.resolve(selected)
+        except ModelError:
+            return None
+        if not resolved.is_dir():
+            return None
+        path = resolved
     entry = store.entry(selected)
     threshold = settings.score_threshold
     if threshold is None:
@@ -184,11 +198,61 @@ def build_benchmark_gpu_detector(
             path,
             device="cuda",
             score_threshold=threshold,
-            model_id=entry.id if entry is not None else path.stem,
+            model_id=entry.id if entry is not None else path.name,
         )
     except TypeError:  # pragma: no cover - factory signature drift
         return None
     return detector
+
+
+TRAINING_HINT = (
+    "Install the training dependencies with `uv sync --extra train --extra cpu` "
+    "(or `uv sync --extra train --extra cuda`)."
+)
+
+
+def _import_training_module(name: str) -> Any:
+    """Import a training adapter, mapping a missing extra to exit code 6."""
+    try:
+        return importlib.import_module(name)
+    except ImportError as exc:
+        raise MissingExtraError(f"Training requires the train extra. {TRAINING_HINT}") from exc
+
+
+def build_trainer(
+    settings: Settings,
+    *,
+    config_path: Path,
+    device: str | None = None,
+    micro_batch: int | None = None,
+    num_workers: int | None = None,
+    progress: ProgressSink | None = None,
+) -> Any:
+    """Wire the fine-tuning adapter from a YAML config and ``settings.data_dir``."""
+    config_module = _import_training_module("rdv.adapters.training.config")
+    trainer_module = _import_training_module("rdv.adapters.training.trainer")
+    config = config_module.TrainConfig.load(Path(config_path))
+    root = settings.data_dir / "rdd2022"
+    train_repository = Rdd2022VocRepository(root, config.data.countries, split="train")
+    val_repository = None
+    if (root / "splits.json").is_file():
+        val_repository = Rdd2022VocRepository(root, config.data.countries, split="val")
+    return trainer_module.RtDetrTrainer(
+        config,
+        train_repository,
+        val_repository=val_repository,
+        device=device if device is not None else settings.device,
+        micro_batch=micro_batch,
+        num_workers=num_workers,
+        offline=settings.offline,
+        progress=progress,
+    )
+
+
+def build_exporter(settings: Settings) -> Any:
+    """Wire the ONNX exporter adapter, which owns the torch stack."""
+    module = _import_training_module("rdv.adapters.training.export_onnx")
+    return module.OnnxModelExporter(offline=settings.offline)
 
 
 def build_media_source() -> PillowImageSource:

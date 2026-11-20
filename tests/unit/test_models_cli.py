@@ -175,8 +175,13 @@ def test_verify_unknown_model_id_exits_four(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("command", ["list", "pull", "path", "verify"])
-def test_manifest_flag_is_accepted_by_every_subcommand(command: str) -> None:
-    result = runner.invoke(app, ["models", command, "--help"], env={"COLUMNS": "120"})
+def test_manifest_flag_is_accepted_by_every_subcommand(tmp_path: Path, command: str) -> None:
+    args = ["models", command]
+    if command in {"pull", "path", "verify"}:
+        args.append("demo")
+    args += ["--manifest", str(tmp_path / "absent.json")]
 
-    assert result.exit_code == 0
-    assert "--manifest" in result.stdout
+    result = runner.invoke(app, args)
+
+    assert result.exit_code == 4
+    assert "Model manifest not found" in result.stderr

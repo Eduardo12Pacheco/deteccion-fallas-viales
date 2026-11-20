@@ -1,0 +1,212 @@
+name: Release
+
+# Tag-driven release (S18, decision D22): verify the tag/manifest, build the
+# wheel, sdist and three desktop bundles, generate notes with git-cliff,
+# attest every asset, publish the GitHub Release, then smoke-test the released
+# wheel and the real model end to end.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  verify:
+    name: Verify release inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install the locked environment
+        run: uv sync --locked
+      - name: Tag matches the project version and the manifest is pinned
+        run: uv run python scripts/ci/verify_release_inputs.py "${GITHUB_REF_NAME}"
+
+  dist:
+    name: Build the distributions
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Build the wheel and the source distribution
+        run: uv build
+      - name: Validate the distribution metadata
+        run: uvx twine check dist/*
+      - name: Upload the distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  bundles:
+    name: Desktop bundle (${{ matrix.platform }})
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux-x64
+            archive: .tar.gz
+          - os: windows-latest
+            platform: windows-x64
+            archive: .zip
+          - os: macos-latest
+            platform: macos-arm64
+            archive: .tar.gz
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install the build environment
+        run: uv sync --locked --group build
+      - name: Download the pinned model asset
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p models
+          gh release download models-v1 --pattern "*.onnx" --dir models
+      - name: Verify the model against the pinned manifest
+        shell: bash
+        run: uv run python scripts/ci/verify_release_inputs.py "${GITHUB_REF_NAME}" --model models/*.onnx
+      - name: Build the desktop bundle
+        shell: bash
+        run: |
+          uv run python scripts/build_desktop.py \
+            --model "$(ls models/*.onnx)" \
+            --out dist/desktop
+      - name: Smoke-test the desktop bundle
+        shell: bash
+        run: uv run python scripts/smoke_bundle.py dist/desktop/RoadDamageVision
+      - name: Stage the correctly named archive
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          archive="dist/desktop/RoadDamageVision-${version}-${{ matrix.platform }}${{ matrix.archive }}"
+          test -f "$archive"
+          mkdir -p release-assets
+          cp "$archive" release-assets/
+          ls -l release-assets
+      - name: Upload the bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: bundles-${{ matrix.platform }}
+          path: release-assets/
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish the GitHub Release
+    needs: [dist, bundles]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Download the distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+      - name: Download the desktop bundles
+        uses: actions/download-artifact@v8
+        with:
+          pattern: bundles-*
+          path: bundles
+          merge-multiple: true
+      - name: Assemble the release assets and checksums
+        run: |
+          mkdir -p release-assets
+          cp dist/*.whl dist/*.tar.gz release-assets/
+          cp bundles/* release-assets/
+          cd release-assets
+          sha256sum ./* > SHA256SUMS
+          cat SHA256SUMS
+      - name: Generate the release notes from Conventional Commits
+        run: uvx git-cliff@2.14.2 --latest --strip header --output RELEASE_NOTES.md
+      - name: Attest the build provenance of every asset
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: release-assets/*
+      - name: Publish the release
+        uses: softprops/action-gh-release@v3
+        with:
+          body_path: RELEASE_NOTES.md
+          files: release-assets/*
+          fail_on_unmatched_files: true
+
+  post-release-smoke:
+    name: Post-release smoke with the real model
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Download the published wheel
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p release-wheel
+          gh release download "${GITHUB_REF_NAME}" --pattern "*.whl" --dir release-wheel
+          ls -l release-wheel
+      - name: Install the released wheel
+        shell: bash
+        run: |
+          tool_bin="$(uv tool dir --bin)"
+          uv tool install --force release-wheel/*.whl
+          echo "$tool_bin" >> "$GITHUB_PATH"
+          uv tool dir --bin
+      - name: Print the released version
+        run: rdv --version
+      - name: Pull the real model (sha256 pinned in the manifest)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: rdv models pull
+      - name: Compare released detections with the pinned expectations
+        shell: bash
+        run: |
+          model="$(rdv models path)"
+          wheel="$(ls release-wheel/*.whl)"
+          uv run --no-project --with "$wheel" python scripts/smoke_release.py \
+            --model "$model" \
+            --samples src/rdv/assets/samples \
+            --expectations reports/v1/sample_expectations.json

@@ -1,0 +1,70 @@
+name: Bug report
+description: Report a reproducible problem with the CLI, the web app or the desktop bundle.
+title: "fix: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem. Please do not paste
+        secrets, personal paths or private images. Redact screenshots when
+        road imagery could contain faces or licence plates.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did it happen?
+      options:
+        - CLI (rdv detect / evaluate / train / ...)
+        - Local web app (rdv serve)
+        - Desktop bundle
+        - Documentation or packaging
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `rdv --version`.
+      placeholder: rdv 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system and Python
+      placeholder: Ubuntu 24.04, Python 3.12.8
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The exact commands or UI actions, in order.
+      placeholder: |
+        1. rdv models pull
+        2. rdv detect samples/D40-1.jpg --out /tmp/out
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and logs
+      description: Include the error message and the exit code; redact private data.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched the existing issues and the documentation.
+          required: true
+        - label: I removed secrets, personal data and private images from this report.
+          required: true

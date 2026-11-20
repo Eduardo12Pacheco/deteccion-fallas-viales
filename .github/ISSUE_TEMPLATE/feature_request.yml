@@ -1,0 +1,50 @@
+name: Feature request
+description: Suggest a focused improvement that fits the local-first, offline scope.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project is deliberately local-first: no servers, no paid APIs and
+        no mandatory accounts. Requests that need any of those are out of scope.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user problem would this solve? Avoid jumping to a solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior you expect and, if relevant, the CLI or API surface.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Detection quality or evaluation
+        - Data pipeline
+        - Local web app
+        - Desktop bundles
+        - Documentation, tests or tooling
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Mention why the obvious alternatives are worse.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This can run fully offline on a normal laptop.
+          required: true
+        - label: This does not require paid APIs, accounts or a remote server.
+          required: true

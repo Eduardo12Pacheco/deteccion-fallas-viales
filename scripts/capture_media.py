@@ -36,7 +36,7 @@ DEFAULT_MODEL = REPO_ROOT / "tests" / "fixtures" / "models" / "tiny-detector.onn
 DESKTOP = {"width": 1360, "height": 900}
 MOBILE = {"width": 390, "height": 844}
 GIF_WIDTH = 760
-GIF_FRAMES = 7
+GIF_FRAMES = 9
 
 
 def _free_port() -> int:
@@ -229,6 +229,7 @@ def capture(out_dir: Path, model: Path | None) -> dict[str, Any]:
             page.locator('[data-testid="theme-toggle"]').click()
             page.wait_for_timeout(200)
             _screenshot(page, out_dir / "home-dark.png")
+            frames.append(_gif_frame(page))
             page.locator('[data-testid="theme-toggle"]').click()
             page.wait_for_timeout(200)
 
@@ -237,15 +238,12 @@ def capture(out_dir: Path, model: Path | None) -> dict[str, Any]:
             _screenshot(page, out_dir / "image-result.png")
             frames.append(_gif_frame(page))
 
-            page.locator('[data-testid="theme-toggle"]').click()
-            page.wait_for_timeout(200)
-            frames.append(_gif_frame(page))
-            page.locator('[data-testid="legend-D00"]').click()
-            page.wait_for_timeout(200)
-            frames.append(_gif_frame(page))
-            page.locator('[data-testid="legend-D00"]').click()
-            page.locator('[data-testid="theme-toggle"]').click()
-            page.wait_for_timeout(200)
+            # The demo walks every packaged sample, so the README shows the real
+            # class spread instead of one lucky image.
+            for extra in samples[1:]:
+                _upload(page, extra)
+                _assert_painted(page)
+                frames.append(_gif_frame(page))
 
             _upload(page, clip)
             try:

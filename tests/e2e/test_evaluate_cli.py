@@ -93,6 +93,11 @@ def test_gallery_index_references_only_existing_files(tmp_path: Path) -> None:
         assert (gallery / reference).is_file(), reference
     categories = {path.parent.name for path in gallery.glob("*/*.jpg")}
     assert categories
+    errors = json.loads((out / "error_analysis.json").read_text(encoding="utf-8"))
+    for category, count in errors["counts"].items():
+        if count:
+            assert category in categories, category
+            assert list((gallery / category).glob("*.jpg"))
     for category in categories:
         assert f"<h2>{category}</h2>" in html
 

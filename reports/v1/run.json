@@ -1,0 +1,21 @@
+{
+  "config_hash": "b935aef3b07ac652bcca578632f407f8715941e919b17a7143ead33112b37d52",
+  "device": "cuda",
+  "epochs_run": 24,
+  "git_sha": "4b3866d26b144de4306e308a6cfd63aa23d91bdc",
+  "gpu": "NVIDIA GeForce RTX 4060",
+  "peak_memory_allocated_gb": 5.8182,
+  "schema": "rdv.train.run/v1",
+  "seed": 42,
+  "versions": {
+    "cuda": "13.0",
+    "nvidia_driver": "620.70.06",
+    "platform": "Linux-7.3.3-1-cachyos-x86_64-with-glibc2.44",
+    "python": "3.12.13",
+    "torch": "2.14.1+cu130",
+    "torchvision": "0.29.1+cu130",
+    "transformers": "4.57.6"
+  },
+  "vram_cap_gb": 7.2,
+  "wall_clock_s": 14660.134
+}

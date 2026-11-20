@@ -1,0 +1,64 @@
+{
+  "config": {
+    "batch": 1,
+    "input_size": 640,
+    "runs": 100,
+    "video_frames": 50,
+    "video_size": [
+      320,
+      240
+    ],
+    "warmup": 20
+  },
+  "cpu": {
+    "batch": 1,
+    "device": "cpu",
+    "fps": 5.909,
+    "input_size": 640,
+    "max_ms": 228.955,
+    "mean_ms": 169.243,
+    "min_ms": 134.534,
+    "p50_ms": 167.118,
+    "p95_ms": 219.166,
+    "runs": 100,
+    "warmup": 20
+  },
+  "gates": {
+    "cpu_p50_limit_ms": 1500.0,
+    "cpu_p50_ok": true,
+    "gpu_p50_limit_ms": 100.0,
+    "gpu_p50_ok": true
+  },
+  "gpu": {
+    "batch": 1,
+    "device": "cuda",
+    "fps": 67.617,
+    "input_size": 640,
+    "max_ms": 16.798,
+    "mean_ms": 14.789,
+    "min_ms": 13.337,
+    "p50_ms": 14.701,
+    "p95_ms": 16.14,
+    "runs": 100,
+    "warmup": 20
+  },
+  "hardware": {
+    "cores": 12,
+    "cpu": "12th Gen Intel(R) Core(TM) i5-12400T",
+    "gpu": "NVIDIA GeForce RTX 4060",
+    "platform": "Linux-7.3.3-1-cachyos-x86_64-with-glibc2.44"
+  },
+  "model": {
+    "id": "rdv-rtdetrv2-r18-rdd2022-v1",
+    "input_size": 640,
+    "score_threshold": 0.25,
+    "sha256": "806be021998a850eb074892b0025e7b6361b771fe773378191039af513b9a7de"
+  },
+  "schema": "rdv.benchmark/v1",
+  "video": {
+    "frames": 50,
+    "frames_per_s": 6.034,
+    "height": 240,
+    "width": 320
+  }
+}

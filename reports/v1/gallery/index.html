@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error gallery — road-damage-vision</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 2rem; color: #222; background: #fff; }
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.1rem; margin-top: 2rem; text-transform: capitalize; }
+table { border-collapse: collapse; width: 100%; }
+td { vertical-align: top; padding: 0.5rem 0.75rem 1.25rem 0; }
+img { max-width: 320px; width: 100%; border: 1px solid #ddd; border-radius: 6px; }
+caption { text-align: left; font-size: 0.8rem; color: #555; }
+.empty { color: #555; }
+</style>
+</head>
+<body>
+<h1>Error gallery</h1>
+<p>Selected error cases ranked by score (false positives) and ground-truth area (misses), at most 6 per category and 24 in total.</p>
+
+
+<h2>classification</h2>
+<table>
+
+<tr>
+<td>
+<a href="classification/01_Japan_003964.jpg"><img src="classification/01_Japan_003964.jpg" alt="classification D10"></a>
+<caption>Japan/train/images/Japan_003964.jpg — D10 — score 0.053 — IoU 0.751</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="classification/02_Czech_002628.jpg"><img src="classification/02_Czech_002628.jpg" alt="classification D00"></a>
+<caption>Czech/train/images/Czech_002628.jpg — D00 — score 0.048 — IoU 0.819</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="classification/03_Japan_012780.jpg"><img src="classification/03_Japan_012780.jpg" alt="classification D00"></a>
+<caption>Japan/train/images/Japan_012780.jpg — D00 — score 0.048 — IoU 0.761</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="classification/04_Japan_004021.jpg"><img src="classification/04_Japan_004021.jpg" alt="classification D00"></a>
+<caption>Japan/train/images/Japan_004021.jpg — D00 — score 0.046 — IoU 0.773</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="classification/05_India_009009.jpg"><img src="classification/05_India_009009.jpg" alt="classification D40"></a>
+<caption>India/train/images/India_009009.jpg — D40 — score 0.044 — IoU 0.748</caption>
+</td>
+</tr>
+
+</table>
+
+<h2>localization</h2>
+<table>
+
+<tr>
+<td>
+<a href="localization/01_India_004208.jpg"><img src="localization/01_India_004208.jpg" alt="localization D40"></a>
+<caption>India/train/images/India_004208.jpg — D40 — score 0.088 — IoU 0.450</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="localization/02_Japan_011031.jpg"><img src="localization/02_Japan_011031.jpg" alt="localization D10"></a>
+<caption>Japan/train/images/Japan_011031.jpg — D10 — score 0.085 — IoU 0.432</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="localization/03_India_005305.jpg"><img src="localization/03_India_005305.jpg" alt="localization D40"></a>
+<caption>India/train/images/India_005305.jpg — D40 — score 0.084 — IoU 0.420</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="localization/04_India_005286.jpg"><img src="localization/04_India_005286.jpg" alt="localization D40"></a>
+<caption>India/train/images/India_005286.jpg — D40 — score 0.076 — IoU 0.477</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="localization/05_India_005305.jpg"><img src="localization/05_India_005305.jpg" alt="localization D40"></a>
+<caption>India/train/images/India_005305.jpg — D40 — score 0.075 — IoU 0.250</caption>
+</td>
+</tr>
+
+</table>
+
+<h2>duplicate</h2>
+<table>
+
+<tr>
+<td>
+<a href="duplicate/01_India_004196.jpg"><img src="duplicate/01_India_004196.jpg" alt="duplicate D40"></a>
+<caption>India/train/images/India_004196.jpg — D40 — score 0.068 — IoU 0.736</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="duplicate/02_Japan_012225.jpg"><img src="duplicate/02_Japan_012225.jpg" alt="duplicate D10"></a>
+<caption>Japan/train/images/Japan_012225.jpg — D10 — score 0.052 — IoU 0.608</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="duplicate/03_India_009097.jpg"><img src="duplicate/03_India_009097.jpg" alt="duplicate D40"></a>
+<caption>India/train/images/India_009097.jpg — D40 — score 0.050 — IoU 0.687</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="duplicate/04_Japan_000376.jpg"><img src="duplicate/04_Japan_000376.jpg" alt="duplicate D10"></a>
+<caption>Japan/train/images/Japan_000376.jpg — D10 — score 0.048 — IoU 0.874</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="duplicate/05_Japan_012225.jpg"><img src="duplicate/05_Japan_012225.jpg" alt="duplicate D10"></a>
+<caption>Japan/train/images/Japan_012225.jpg — D10 — score 0.047 — IoU 0.588</caption>
+</td>
+</tr>
+
+</table>
+
+<h2>background</h2>
+<table>
+
+<tr>
+<td>
+<a href="background/01_Japan_004038.jpg"><img src="background/01_Japan_004038.jpg" alt="background D10"></a>
+<caption>Japan/train/images/Japan_004038.jpg — D10 — score 0.113</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="background/02_Japan_010983.jpg"><img src="background/02_Japan_010983.jpg" alt="background D40"></a>
+<caption>Japan/train/images/Japan_010983.jpg — D40 — score 0.108</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="background/03_Japan_004021.jpg"><img src="background/03_Japan_004021.jpg" alt="background D10"></a>
+<caption>Japan/train/images/Japan_004021.jpg — D10 — score 0.105</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="background/04_Japan_012920.jpg"><img src="background/04_Japan_012920.jpg" alt="background D10"></a>
+<caption>Japan/train/images/Japan_012920.jpg — D10 — score 0.104</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="background/05_Japan_012770.jpg"><img src="background/05_Japan_012770.jpg" alt="background D40"></a>
+<caption>Japan/train/images/Japan_012770.jpg — D40 — score 0.095</caption>
+</td>
+</tr>
+
+</table>
+
+<h2>missed</h2>
+<table>
+
+<tr>
+<td>
+<a href="missed/01_India_001776.jpg"><img src="missed/01_India_001776.jpg" alt="missed D20"></a>
+<caption>India/train/images/India_001776.jpg — D20</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="missed/02_Japan_012120.jpg"><img src="missed/02_Japan_012120.jpg" alt="missed D20"></a>
+<caption>Japan/train/images/Japan_012120.jpg — D20</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="missed/03_India_009750.jpg"><img src="missed/03_India_009750.jpg" alt="missed D20"></a>
+<caption>India/train/images/India_009750.jpg — D20</caption>
+</td>
+</tr>
+
+<tr>
+<td>
+<a href="missed/04_Japan_003919.jpg"><img src="missed/04_Japan_003919.jpg" alt="missed D20"></a>
+<caption>Japan/train/images/Japan_003919.jpg — D20</caption>
+</td>
+</tr>
+
+</table>
+
+
+</body>
+</html>

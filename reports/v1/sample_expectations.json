@@ -1,0 +1,82 @@
+{
+  "schema": "rdv.sample-expectations/v1",
+  "threshold": 0.01,
+  "margin_required": 0.15,
+  "note": "The v1 head is under-confident: no packaged sample reached the 0.15 margin above the recommended threshold. The expectations keep every sample that produces at least one detection at the threshold and the post-release smoke asserts class presence and scores >= threshold, not the margin.",
+  "samples": [
+    {
+      "image": "D00-1.jpg",
+      "expected_classes": [
+        "D00",
+        "D20"
+      ],
+      "max_scores": {
+        "D00": 0.0168,
+        "D20": 0.018
+      },
+      "margin": 0.008,
+      "margin_ok": false
+    },
+    {
+      "image": "D00-2.jpg",
+      "expected_classes": [
+        "D00"
+      ],
+      "max_scores": {
+        "D00": 0.0133
+      },
+      "margin": 0.0033,
+      "margin_ok": false
+    },
+    {
+      "image": "D10-1.jpg",
+      "expected_classes": [
+        "D00",
+        "D10",
+        "D40"
+      ],
+      "max_scores": {
+        "D00": 0.0122,
+        "D10": 0.0107,
+        "D40": 0.0116
+      },
+      "margin": 0.0022,
+      "margin_ok": false
+    },
+    {
+      "image": "D20-1.jpg",
+      "expected_classes": [
+        "D00",
+        "D20"
+      ],
+      "max_scores": {
+        "D00": 0.0168,
+        "D20": 0.0167
+      },
+      "margin": 0.0068,
+      "margin_ok": false
+    },
+    {
+      "image": "D40-1.jpg",
+      "expected_classes": [
+        "D40"
+      ],
+      "max_scores": {
+        "D40": 0.0622
+      },
+      "margin": 0.0522,
+      "margin_ok": false
+    },
+    {
+      "image": "D40-2.jpg",
+      "expected_classes": [
+        "D40"
+      ],
+      "max_scores": {
+        "D40": 0.0215
+      },
+      "margin": 0.0115,
+      "margin_ok": false
+    }
+  ]
+}

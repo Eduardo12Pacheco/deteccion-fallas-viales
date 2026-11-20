@@ -63,6 +63,7 @@ dev = [
   "hypothesis>=6.120",
   "jsonschema>=4.23",
   "onnx>=1.17",
+  "packaging>=24",
   "pycocotools>=2.0.8",
   "ruff>=0.8",
   "mypy>=1.13",

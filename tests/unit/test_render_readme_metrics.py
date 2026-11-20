@@ -88,7 +88,7 @@ def test_renders_and_checks_the_readme_block(tmp_path: Path) -> None:
     assert "| CPU p50 (ms/image) | 321.5 |" in text
     assert "| GPU p50 (ms/image) | 42.0 |" in text
     assert "| OOD Norway mAP@0.5 | 0.1800 |" in text
-    assert "PASS (>= min bar)" in text
+    assert "| S10 status | PASS (>= min bar) |" in text
     assert "old" not in text
 
 

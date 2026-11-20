@@ -112,7 +112,7 @@ def status_lines(metrics: dict[str, Any]) -> tuple[bool, list[str]]:
 def render_block(metrics: dict[str, Any], benchmark: dict[str, Any] | None) -> str:
     """Build the Markdown block shared by the English and Spanish READMEs."""
     values = metrics["metrics"]
-    _, status = status_lines(metrics)
+    passes, status = status_lines(metrics)
     rows: list[tuple[str, str]] = [
         ("mAP@0.5", f"{_number(values, 'map_50', source='metrics.map_50'):.4f}"),
         ("mAP@0.5:0.95", f"{_number(values, 'map_50_95', source='metrics.map_50_95'):.4f}"),
@@ -136,7 +136,7 @@ def render_block(metrics: dict[str, Any], benchmark: dict[str, Any] | None) -> s
             rows.append(("OOD Norway mAP@0.5", f"{float(ood['map_50']):.4f}"))
         if isinstance(ood.get("map_50_95"), (int, float)):
             rows.append(("OOD Norway mAP@0.5:0.95", f"{float(ood['map_50_95']):.4f}"))
-    rows.append(("S10 status", status[0].split(":")[0] if status else "n/a"))
+    rows.append(("S10 status", "PASS (>= min bar)" if passes else "BELOW TARGET"))
 
     lines = [START_MARKER, "| Metric | Value |", "| --- | --- |"]
     lines.extend(f"| {name} | {value} |" for name, value in rows)
@@ -197,9 +197,9 @@ def main(argv: list[str] | None = None) -> int:
         found = False
         for readme in readmes:
             if not readme.is_file():
-                if args.check:
-                    continue
-                raise ReportError(f"README not found: {readme}")
+                # README.es.md is created by T16; until then the English file
+                # is the only one that exists on a fresh checkout.
+                continue
             update_readme(readme, block, check=args.check)
             found = True
         if not found:

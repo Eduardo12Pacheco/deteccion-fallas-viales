@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -20,6 +21,7 @@ from rdv.adapters.datasets.remote_zip import (
 )
 from rdv.adapters.inference.onnx_detector import OnnxDetector
 from rdv.adapters.inference.preprocess import INPUT_SIZE
+from rdv.adapters.inference.providers import available_providers
 from rdv.adapters.media.images import PillowImageSource
 from rdv.adapters.media.renderer import PillowRenderer
 from rdv.adapters.models.manifest import ModelManifest, default_manifest_path
@@ -28,6 +30,7 @@ from rdv.adapters.reporting.detections_json import DetectionsJsonWriter
 from rdv.adapters.reporting.summary_md import SummaryWriter
 from rdv.application.ports import DEFAULT_SCORE_THRESHOLD
 from rdv.config.settings import Settings
+from rdv.errors import ModelError
 
 
 def load_dataset_lock(path: Path) -> DatasetLock:
@@ -120,3 +123,59 @@ def build_detections_writer() -> DetectionsJsonWriter:
 def build_summary_writer() -> SummaryWriter:
     """Aggregate summary writer (JSON and Markdown from one view-model)."""
     return SummaryWriter()
+
+
+def doctor_report(settings: Settings) -> dict[str, Any]:
+    """Collect environment, provider and model status for ``rdv doctor``."""
+    import platform
+
+    import onnxruntime
+
+    from rdv import __version__
+
+    store = build_model_store(settings)
+    model: dict[str, Any] = {"requested": settings.model}
+    try:
+        path = store.resolve(settings.model)
+    except ModelError as exc:
+        entry = store.entry(settings.model)
+        model.update(
+            {
+                "status": "missing",
+                "id": settings.model,
+                "path": None,
+                "error": exc.message,
+                "manifest_known": entry is not None,
+            }
+        )
+    else:
+        entry = store.entry(settings.model)
+        model.update(
+            {
+                "status": "ready",
+                "id": entry.id if entry is not None else path.stem,
+                "path": str(path),
+                "sha256": entry.sha256 if entry is not None else None,
+                "error": None,
+                "manifest_known": entry is not None,
+            }
+        )
+    return {
+        "schema": "rdv.doctor/v1",
+        "rdv_version": __version__,
+        "python": platform.python_version(),
+        "platform": {
+            "system": platform.system(),
+            "release": platform.release(),
+            "machine": platform.machine(),
+        },
+        "packages": {
+            "onnxruntime": onnxruntime.__version__,
+        },
+        "providers": list(available_providers()),
+        "device": settings.device,
+        "offline": settings.offline,
+        "data_dir": str(settings.data_dir),
+        "model_dir": str(settings.model_dir),
+        "model": model,
+    }

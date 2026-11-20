@@ -12,12 +12,16 @@ import numpy as np
 import onnxruntime as ort
 import pytest
 from PIL import Image
+from typer.testing import CliRunner
+
+from rdv.entrypoints.cli.app import app
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TINY_MODEL = REPO_ROOT / "tests" / "fixtures" / "models" / "tiny-detector.onnx"
 SCHEMA = REPO_ROOT / "docs" / "schemas" / "detections.v1.schema.json"
 MINI = REPO_ROOT / "tests" / "fixtures" / "rdd2022-mini"
 IMAGE = sorted((MINI / "Japan" / "train" / "images").glob("*.jpg"))[0]
+runner = CliRunner()
 
 
 def _run(*args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
@@ -154,3 +158,19 @@ def test_no_inputs_exits_five() -> None:
 
     assert result.returncode == 5
     assert "No input images" in result.stderr
+
+
+def test_detect_in_process_writes_the_same_artifacts(tmp_path: Path) -> None:
+    out = tmp_path / "in-process"
+
+    result = runner.invoke(
+        app,
+        ["detect", str(IMAGE), "--model", str(TINY_MODEL), "--out", str(out)],
+    )
+
+    assert result.exit_code == 0, result.stderr
+    assert "2 detection(s)" in result.stdout
+    assert (out / f"{IMAGE.stem}.annotated.png").is_file()
+    assert (out / "summary.md").is_file()
+    summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+    assert summary["totals"]["detections"] == 2

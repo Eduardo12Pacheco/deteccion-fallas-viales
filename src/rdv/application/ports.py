@@ -244,6 +244,14 @@ class SummaryWriter(Protocol):
         ...
 
 
+class ReportWriter(DetectionsWriter, SummaryWriter, Protocol):
+    """Composite of both report writers (split into two adapters in practice).
+
+    The use case takes the two halves explicitly so each adapter has one
+    responsibility; this Protocol names the complete report-writing port.
+    """
+
+
 class ProgressSink(Protocol):
     """Observer of :class:`ProgressEvent` values."""
 

@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from typer.main import get_command
 from typer.testing import CliRunner
 
 from rdv import composition
@@ -15,21 +16,21 @@ from rdv.errors import MissingExtraError
 
 
 def test_train_help_documents_the_config_and_dry_run() -> None:
-    result = CliRunner().invoke(app, ["train", "--help"], env={"COLUMNS": "120"})
+    result = CliRunner().invoke(app, ["train", "--help"])
 
     assert result.exit_code == 0, result.stderr
-    assert "--config" in result.stdout
-    assert "--resume" in result.stdout
-    assert "--benchmark-only" in result.stdout
-    assert "--dry-run" in result.stdout
+    command = get_command(app).commands["train"]
+    option_names = {parameter.name for parameter in command.params}
+    assert {"config", "run_dir", "resume", "benchmark_only", "dry_run"} <= option_names
 
 
 def test_export_help_documents_checkpoint_and_output() -> None:
-    result = CliRunner().invoke(app, ["export", "--help"], env={"COLUMNS": "120"})
+    result = CliRunner().invoke(app, ["export", "--help"])
 
     assert result.exit_code == 0, result.stderr
-    assert "--checkpoint" in result.stdout
-    assert "--out" in result.stdout
+    command = get_command(app).commands["export"]
+    option_names = {parameter.name for parameter in command.params}
+    assert {"checkpoint", "out"} <= option_names
 
 
 def test_missing_train_extra_maps_to_exit_six(

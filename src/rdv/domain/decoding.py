@@ -65,7 +65,8 @@ def decode_detr_outputs(
     if max_detections < 1:
         raise ValueError(f"max_detections must be positive, got {max_detections!r}")
     if scores.size == 0 and boxes.size == 0:
-        return []
+        scores = scores.reshape(0, _NUM_CLASSES)
+        boxes = boxes.reshape(0, 4)
     if scores.ndim != 2:
         raise ValueError(f"logits must be two-dimensional, got shape {scores.shape}")
     if scores.shape[1] != _NUM_CLASSES:

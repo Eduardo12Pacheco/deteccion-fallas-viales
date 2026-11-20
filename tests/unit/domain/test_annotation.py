@@ -35,6 +35,18 @@ def test_annotated_image_allows_negative_samples() -> None:
     image = AnnotatedImage(image_id="Czech/000002.jpg", width=600, height=600)
 
     assert image.annotations == ()
+    assert image.is_negative
+
+
+def test_annotated_image_with_annotations_is_not_negative() -> None:
+    image = AnnotatedImage(
+        image_id="Czech/000003.jpg",
+        width=600,
+        height=600,
+        annotations=(Annotation(DamageClass.D00, BBox(0, 0, 5, 5)),),
+    )
+
+    assert not image.is_negative
 
 
 @pytest.mark.parametrize(("width", "height"), [(0, 600), (600, 0), (-1, 600)])

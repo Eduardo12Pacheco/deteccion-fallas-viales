@@ -58,6 +58,12 @@ def test_bbox_clipped_to_image_bounds() -> None:
     assert clipped == BBox(0.0, 0.0, 100.0, 80.0)
 
 
+@pytest.mark.parametrize(("width", "height"), [(0, 80), (100, 0), (-1, 80)])
+def test_bbox_clipping_requires_positive_dimensions(width: int, height: int) -> None:
+    with pytest.raises(ValueError, match="dimensions"):
+        BBox(0, 0, 1, 1).clipped(width, height)
+
+
 def test_iou_of_identical_boxes_is_one() -> None:
     box = BBox(0.0, 0.0, 10.0, 10.0)
 

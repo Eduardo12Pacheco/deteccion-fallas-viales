@@ -1,0 +1,27 @@
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: UTC
+    open-pull-requests-limit: 5
+    groups:
+      python-runtime:
+        patterns: ["*"]
+        exclude-patterns: ["torch*", "transformers", "scipy"]
+      python-training:
+        patterns: ["torch*", "transformers", "scipy"]
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:30"
+      timezone: UTC
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns: ["*"]

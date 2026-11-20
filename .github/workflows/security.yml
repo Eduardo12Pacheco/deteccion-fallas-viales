@@ -1,0 +1,65 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  gitleaks:
+    name: Secret scan (full history)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks with checksum verification
+        run: bash scripts/ci/install_gitleaks.sh "${RUNNER_TEMP}/bin"
+      - name: Scan every commit for secrets
+        run: '"${RUNNER_TEMP}/bin/gitleaks" detect --source . --redact --verbose --log-opts="--all"'
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install the locked environment
+        run: uv sync --locked
+      - name: Export the runtime requirements
+        run: bash scripts/ci/export_audit_requirements.sh requirements-audit.txt
+      - name: pip-audit
+        run: uv run pip-audit -r requirements-audit.txt --progress-spinner off
+
+  license-guard:
+    name: License guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install the full runtime stack
+        run: uv sync --locked --extra train --extra cpu
+      - name: Reject GPL/AGPL runtime dependencies
+        run: uv run pytest tests/unit/test_license_guard.py -q

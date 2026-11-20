@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import json
 import time
 from collections.abc import Iterator
@@ -10,6 +11,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 from jsonschema import Draft202012Validator
+from PIL import Image
 
 from rdv.adapters.inference.onnx_detector import OnnxDetector
 from rdv.config.settings import Settings
@@ -134,6 +136,14 @@ def test_image_analysis_returns_inline_results_and_downloadables(client: TestCli
     assert annotated.status_code == 200
     assert annotated.headers["content-type"] == "image/png"
     assert annotated.content.startswith(b"\x89PNG")
+    with Image.open(io.BytesIO(annotated.content)) as image:
+        image.load()
+        assert image.width > 0 and image.height > 0
+
+    assert client.get("/api/docs").status_code == 200
+    index = client.get("/")
+    assert index.status_code == 200
+    assert "Road Damage Vision" in index.text
 
 
 def test_delete_removes_artifacts_and_the_job(client: TestClient) -> None:

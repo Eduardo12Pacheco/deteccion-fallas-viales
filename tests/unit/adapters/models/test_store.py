@@ -232,12 +232,26 @@ def test_pull_with_an_unknown_id_lists_the_manifest(tmp_path: Path) -> None:
         store.pull("demo")
 
 
-def test_pull_sends_an_optional_github_token_for_private_releases(
+def test_pull_uses_the_github_api_for_private_release_assets(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     headers: dict[str, str] = {}
+    seen: list[str] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(str(request.url))
+        if request.url.path.endswith("/releases/tags/models-v1"):
+            return httpx.Response(
+                200,
+                json={
+                    "assets": [
+                        {
+                            "name": "demo.onnx",
+                            "url": "https://api.github.com/repos/owner/repo/releases/assets/42",
+                        }
+                    ]
+                },
+            )
         headers.update(request.headers)
         return httpx.Response(200, content=CONTENT)
 
@@ -249,9 +263,13 @@ def test_pull_sends_an_optional_github_token_for_private_releases(
     )
     monkeypatch.setenv("GITHUB_TOKEN", "test-token")
 
-    store.pull("demo")
+    path = store.pull("demo")
 
+    assert path.read_bytes() == CONTENT
+    assert seen[0].endswith("/repos/owner/repo/releases/tags/models-v1")
+    assert seen[-1].endswith("/repos/owner/repo/releases/assets/42")
     assert headers.get("authorization") == "Bearer test-token"
+    assert headers.get("accept") == "application/octet-stream"
 
 
 def test_pull_does_not_send_a_token_to_third_party_hosts(

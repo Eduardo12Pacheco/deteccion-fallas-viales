@@ -51,7 +51,11 @@ as a GitHub Release asset (`models-v1`).
   and a network failure keeps the `.part` for the next attempt.
 - No key is required for a public release. Because the portfolio repository is
   private, `pull` also honors an optional `GITHUB_TOKEN`/`GH_TOKEN` (for
-  example `gh auth token`) and sends the bearer header only to GitHub hosts;
-  anonymous requests are unchanged.
+  example `gh auth token`). GitHub answers 404 for a private release's browser
+  download URL even with a bearer token, so with a token set the store resolves
+  the stable manifest URL through the Releases API and downloads the asset with
+  `Accept: application/octet-stream`; the bearer header is sent only to GitHub
+  hosts. Anonymous requests are unchanged and public releases keep working
+  without a token.
 - The manifest is small enough to review by hand, which keeps the trust anchor
   visible in the repository instead of hidden in release metadata.

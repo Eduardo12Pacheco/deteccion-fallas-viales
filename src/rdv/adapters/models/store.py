@@ -9,9 +9,10 @@ it with an HTTP ``Range`` request. ``RDV_OFFLINE=1`` fails before any request.
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Callable, Mapping
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import httpx
 
@@ -23,6 +24,54 @@ from rdv.hashing import sha256_file
 _CHUNK_SIZE = 1024 * 1024
 _DEFAULT_TIMEOUT = 60.0
 _GITHUB_HOSTS = {"github.com", "www.github.com", "api.github.com"}
+_GITHUB_RELEASE = re.compile(
+    r"^https://github\.com/(?P<owner>[^/]+)/(?P<repo>[^/]+)"
+    r"/releases/download/(?P<tag>[^/]+)/(?P<asset>[^/?#]+)$"
+)
+
+
+def github_token() -> str | None:
+    """Return the optional GitHub token from the environment."""
+    return os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+
+
+def resolve_github_asset(
+    client: httpx.Client,
+    url: str,
+    token: str,
+    *,
+    timeout: float,
+) -> tuple[str, dict[str, str]] | None:
+    """Resolve a private release browser URL to its authenticated API asset URL.
+
+    GitHub returns 404 for ``/releases/download/...`` on a private repository
+    even with a bearer token; the REST asset endpoint with
+    ``Accept: application/octet-stream`` is the documented download route. The
+    manifest keeps the stable browser URL and the store resolves it lazily when
+    a token is available (public downloads stay anonymous).
+    """
+    match = _GITHUB_RELEASE.match(url)
+    if match is None:
+        return None
+    owner, repo, tag, asset_name = (match.group(name) for name in ("owner", "repo", "tag", "asset"))
+    api_url = f"https://api.github.com/repos/{owner}/{repo}/releases/tags/{quote(tag)}"
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {token}",
+    }
+    try:
+        response = client.get(api_url, headers=headers, timeout=timeout)
+        response.raise_for_status()
+        payload = response.json()
+    except (httpx.HTTPError, ValueError):
+        return None
+    for asset in payload.get("assets", []):
+        if asset.get("name") == asset_name and asset.get("url"):
+            return (
+                str(asset["url"]),
+                {"Accept": "application/octet-stream", "Authorization": f"Bearer {token}"},
+            )
+    return None
 
 
 def request_headers(url: str, headers: Mapping[str, str]) -> dict[str, str]:
@@ -34,7 +83,7 @@ def request_headers(url: str, headers: Mapping[str, str]) -> dict[str, str]:
     GitHub hosts, never to a third-party mirror.
     """
     merged = dict(headers)
-    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    token = github_token()
     if token and urlparse(url).hostname in _GITHUB_HOSTS:
         merged["Authorization"] = f"Bearer {token}"
     return merged
@@ -146,10 +195,16 @@ class CachedModelStore:
             follow_redirects=True,
             timeout=self._timeout,
         )
+        target = entry.url
+        token = github_token()
+        if token:
+            resolved = resolve_github_asset(client, entry.url, token, timeout=self._timeout)
+            if resolved is not None:
+                target, headers = resolved
         try:
             try:
                 with client.stream(
-                    "GET", entry.url, headers=request_headers(entry.url, headers)
+                    "GET", target, headers=request_headers(target, headers)
                 ) as response:
                     if response.status_code == 416 and start:
                         # The server says the range is already complete.

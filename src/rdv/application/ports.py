@@ -7,7 +7,7 @@ dataset repository and the progress observer.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
@@ -213,6 +213,62 @@ class MediaSource(Protocol):
 
     def save_png(self, path: Path, image: RgbImage) -> None:
         """Write an RGB array as a PNG file."""
+        ...
+
+
+class VideoSource(Protocol):
+    """Decode a video file as an ordered stream of RGB frames (S6, D20).
+
+    The source is single-use and must be closed by the caller (or by the
+    generator's finalizer) so the underlying capture handle is released even
+    when the pipeline stops early because of ``--max-frames``.
+    """
+
+    @property
+    def path(self) -> Path:
+        """Input file path, recorded as-is in the detections document."""
+        ...
+
+    @property
+    def fps(self) -> float:
+        """Source frame rate read from the container."""
+        ...
+
+    @property
+    def frame_count(self) -> int | None:
+        """Declared frame count, or ``None`` when the container omits it."""
+        ...
+
+    @property
+    def width(self) -> int:
+        """Display width in pixels after container rotation is applied."""
+        ...
+
+    @property
+    def height(self) -> int:
+        """Display height in pixels after container rotation is applied."""
+        ...
+
+    def frames(self) -> Iterator[RgbImage]:
+        """Yield every decodable frame in display order (RGB ``uint8``)."""
+        ...
+
+    def close(self) -> None:
+        """Release the capture handle; safe to call more than once."""
+        ...
+
+
+class VideoSink(Protocol):
+    """Encode annotated RGB frames as an MP4, atomically per output path."""
+
+    def write_video(
+        self,
+        path: Path,
+        frames: Iterable[RgbImage],
+        *,
+        fps: float,
+    ) -> None:
+        """Consume ``frames`` into ``path``; a failed stream leaves no file."""
         ...
 
 

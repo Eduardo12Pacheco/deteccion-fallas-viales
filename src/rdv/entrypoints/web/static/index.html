@@ -1,36 +1,247 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Road Damage Vision</title>
-<style>
-  :root { color-scheme: light dark; }
-  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
-         min-height: 100vh; display: grid; place-items: center; background: #f7f7f7;
-         color: #111; }
-  main { max-width: 46rem; padding: 2rem; }
-  h1 { margin: 0 0 .5rem; font-size: 1.75rem; }
-  p { line-height: 1.6; color: #444; }
-  code { font-size: .95em; }
-  ul { line-height: 1.9; }
-  @media (prefers-color-scheme: dark) {
-    body { background: #111; color: #eee; }
-    p { color: #bbb; }
-  }
-</style>
-</head>
-<body>
-<main>
-  <h1>Road Damage Vision</h1>
-  <p>The local analysis server is running. The interactive viewer is being
-  assembled in the next task; the backend already accepts uploads and exposes
-  the full JSON API.</p>
-  <ul>
-    <li><a href="/api/docs">API documentation</a></li>
-    <li><a href="/api/health">Health check</a></li>
-    <li><a href="/api/model">Model information</a></li>
-  </ul>
-</main>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Local, offline road-damage detection: upload an image or video and inspect RT-DETRv2 detections."
+    />
+    <title>Road Damage Vision</title>
+    <link rel="stylesheet" href="/static/css/tokens.css" />
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/components.css" />
+    <script type="module" src="/static/js/main.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="app-header">
+      <div class="wordmark"><span class="wordmark-mark" aria-hidden="true">RDV</span> Road Damage Vision</div>
+      <div class="header-meta">
+        <span class="model-chip" data-testid="model-chip" title="Active model">
+          <strong id="model-name">loading model…</strong>
+          <span class="chip-sep" aria-hidden="true">·</span>
+          <span id="model-device">—</span>
+        </span>
+        <button
+          id="theme-toggle"
+          class="icon-button"
+          type="button"
+          data-testid="theme-toggle"
+          aria-label="Switch to dark theme"
+          aria-pressed="false"
+        >
+          <span id="theme-icon" aria-hidden="true">◐</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="main" class="page">
+      <section class="intro" aria-labelledby="intro-title">
+        <h1 id="intro-title">See what the road is telling you.</h1>
+        <p>
+          Drop a photo or a clip of a road surface. The local RT-DETRv2 model finds longitudinal,
+          transverse and alligator cracks plus potholes, entirely on this machine. Nothing leaves
+          your computer.
+        </p>
+        <div id="status" class="status-line" role="status" aria-live="polite" data-testid="status">
+          Ready.
+        </div>
+      </section>
+
+      <section id="drop-section" class="drop-section" aria-label="Upload">
+        <div id="dropzone" class="dropzone" data-testid="dropzone">
+          <button
+            id="browse-button"
+            class="dropzone-target"
+            type="button"
+            aria-describedby="drop-hint"
+          >
+            <span class="dropzone-icon" aria-hidden="true">↑</span>
+            <span class="dropzone-title">Drop a road image or video</span>
+            <span id="drop-hint" class="dropzone-hint">
+              JPEG, PNG or WebP images, MP4, WebM or MOV video · or press
+              <kbd>o</kbd> to browse
+            </span>
+            <span class="button button-primary">Browse files</span>
+          </button>
+          <input
+            id="file-input"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+            hidden
+          />
+        </div>
+
+        <div id="progress-panel" class="progress-panel" data-testid="progress-panel" hidden>
+          <div
+            id="progress-bar"
+            class="progress-track"
+            role="progressbar"
+            aria-label="Analysis progress"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            data-testid="progress-bar"
+          >
+            <div id="progress-fill" class="progress-fill"></div>
+          </div>
+          <span id="progress-message" class="progress-message">Uploading…</span>
+          <span id="progress-value" class="progress-value" data-testid="progress-value">0%</span>
+        </div>
+
+        <div id="upload-error" class="alert" role="alert" data-testid="upload-error" hidden>
+          <strong>Upload failed.</strong>
+          <span id="upload-error-message"></span>
+        </div>
+      </section>
+
+      <section
+        id="result-view"
+        class="result-view"
+        data-testid="result-view"
+        aria-label="Analysis result"
+        hidden
+      >
+        <div class="result-header">
+          <div class="result-title">
+            <h2 id="result-filename">—</h2>
+            <span id="result-meta" class="muted mono">—</span>
+          </div>
+          <div class="result-actions">
+            <button id="download-png" class="button button-small" type="button">
+              Download annotated PNG
+            </button>
+            <a id="download-json" class="button button-small" href="/api/health" download>Download JSON</a>
+            <a id="download-html" class="button button-small" href="/api/health" download>HTML report</a>
+            <button id="reset-button" class="button button-small" type="button">New analysis</button>
+          </div>
+        </div>
+
+        <div class="result-grid">
+          <div class="viewer-panel">
+            <div id="viewer" class="viewer" data-testid="viewer">
+              <img id="image-viewer" alt="Uploaded road scene with detection overlay" hidden />
+              <video id="video-viewer" controls playsinline hidden>
+                <track kind="captions" src="data:text/vtt;charset=utf-8,WEBVTT%0A%0A" label="No captions" />
+              </video>
+              <canvas
+                id="overlay-canvas"
+                data-testid="overlay-canvas"
+                aria-label="Detection overlay"
+              ></canvas>
+              <div id="canvas-tooltip" class="canvas-tooltip" hidden></div>
+            </div>
+
+            <div id="video-controls" class="video-controls" data-testid="video-controls" hidden>
+              <section
+                id="density-timeline"
+                class="timeline"
+                data-testid="density-timeline"
+                aria-label="Detection density timeline"
+              ></section>
+              <div class="timeline-meta">
+                <span id="frame-position" data-testid="frame-position">Frame — of —</span>
+                <span>Timeline shows detection counts per analyzed frame. Click or use ← → to step.</span>
+              </div>
+            </div>
+
+            <div id="empty-state" class="empty-state" data-testid="empty-state" hidden>
+              <strong id="empty-title" data-testid="empty-title">No damage detected</strong>
+              <span id="empty-text">Nothing matches the current confidence and class filters.</span>
+            </div>
+          </div>
+
+          <aside class="side-panel" aria-label="Detections and summary">
+            <div class="card">
+              <div class="card-header">
+                <h3>Summary</h3>
+                <span id="summary-scope" class="muted mono">—</span>
+              </div>
+              <div class="tiles">
+                <div class="tile">
+                  <span id="tile-total" class="tile-value" data-testid="tile-total">0</span>
+                  <span class="tile-label">Detections</span>
+                </div>
+                <div class="tile">
+                  <span id="tile-max" class="tile-value">0.000</span>
+                  <span class="tile-label">Max score</span>
+                </div>
+                <div class="tile">
+                  <span id="tile-coverage" class="tile-value">0%</span>
+                  <span class="tile-label">Coverage</span>
+                </div>
+                <div class="tile">
+                  <span id="tile-extra" class="tile-value">0</span>
+                  <span id="tile-extra-label" class="tile-label">Classes present</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Classes</h3>
+                <span class="muted">Toggle to filter</span>
+              </div>
+              <ul id="class-legend" class="legend"></ul>
+            </div>
+
+            <div class="card">
+              <div class="field">
+                <label class="field-label" for="confidence-slider">
+                  <span>Confidence</span>
+                  <output id="confidence-value" for="confidence-slider">0.00</output>
+                </label>
+                <input
+                  id="confidence-slider"
+                  data-testid="confidence-slider"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.001"
+                  value="0"
+                />
+                <span class="muted" style="font-size: var(--text-xs)">
+                  Filtering happens in your browser. The model is not re-run.
+                </span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Detections</h3>
+                <span id="table-count" class="muted">0 rows</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <caption class="sr-only">
+                    Detections matching the current filters, sortable by column.
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col"><button type="button" data-sort="frame">Frame</button></th>
+                      <th scope="col"><button type="button" data-sort="class">Class</button></th>
+                      <th scope="col"><button type="button" data-sort="score">Score</button></th>
+                      <th scope="col"><button type="button" data-sort="box">Box (x1, y1, x2, y2)</button></th>
+                      <th scope="col">Track</th>
+                    </tr>
+                  </thead>
+                  <tbody id="detections-body" data-testid="detections-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <section id="history-section" class="history" aria-label="Session history" hidden>
+          <h3 class="muted">This session</h3>
+          <ul id="history-list" class="history-list"></ul>
+        </section>
+      </section>
+
+      <noscript>
+        <p class="alert">This viewer needs JavaScript. The JSON API is available at /api/docs.</p>
+      </noscript>
+    </main>
+  </body>
 </html>

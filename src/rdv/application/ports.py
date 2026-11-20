@@ -16,8 +16,13 @@ import numpy as np
 from numpy.typing import NDArray
 
 from rdv.application.events import ProgressEvent
-from rdv.domain.annotation import AnnotatedImage
+from rdv.domain.annotation import AnnotatedImage, Annotation
+from rdv.domain.classes import DamageClass
 from rdv.domain.detection import Detection
+from rdv.domain.geometry import BBox
+from rdv.domain.metrics.confusion import ConfusionMatrix
+from rdv.domain.metrics.curves import PRCurve
+from rdv.domain.metrics.error_analysis import ErrorCategory
 
 RgbImage = NDArray[np.uint8]
 """HxWx3 ``uint8`` array in RGB order (kept as a portable alias)."""
@@ -313,4 +318,70 @@ class ProgressSink(Protocol):
 
     def emit(self, event: ProgressEvent) -> None:
         """Handle one progress event."""
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class GalleryCase:
+    """One error case selected for the visual gallery (S7/D10).
+
+    ``category`` is the D10 taxonomy bucket; ``detection_bbox`` is the
+    false-positive box (``None`` for misses) and ``ground_truth_bbox`` the
+    labeled box it was compared with (``None`` for background errors).
+    """
+
+    image_id: str
+    category: ErrorCategory
+    damage_class: DamageClass
+    ground_truth: tuple[Annotation, ...]
+    detections: tuple[Detection, ...]
+    detection_bbox: BBox | None
+    ground_truth_bbox: BBox | None = None
+    score: float | None = None
+    iou: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class EvaluationReport:
+    """Everything an evaluation report adapter needs to write the S7 files.
+
+    The use case builds the two JSON-ready documents; the adapter owns
+    rendering (Markdown, HTML, plots, gallery images) so no plotting or
+    templating dependency leaks into the application layer.
+    """
+
+    document: Mapping[str, Any]
+    error_document: Mapping[str, Any]
+    pr_curves: Mapping[DamageClass, PRCurve]
+    confusion: ConfusionMatrix
+    gallery: tuple[GalleryCase, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class EvaluationArtifacts:
+    """Absolute paths of every file produced by ``rdv evaluate``."""
+
+    output_dir: Path
+    metrics_json: Path
+    report_markdown: Path
+    report_html: Path
+    pr_curves_png: Path
+    pr_curve_csvs: Mapping[DamageClass, Path]
+    confusion_png: Path
+    confusion_csv: Path
+    error_analysis_json: Path
+    gallery_index: Path
+
+
+class EvaluationReportWriter(Protocol):
+    """Persist the S7 evaluation artifact set."""
+
+    def write_report(
+        self,
+        output_dir: Path,
+        report: EvaluationReport,
+        *,
+        load_image: Callable[[str], RgbImage],
+    ) -> EvaluationArtifacts:
+        """Render every report file and return the written paths."""
         ...

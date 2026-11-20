@@ -7,6 +7,7 @@ inference, model-store and reporting wiring.
 
 from __future__ import annotations
 
+import importlib
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -24,11 +25,12 @@ from rdv.adapters.inference.preprocess import INPUT_SIZE
 from rdv.adapters.inference.providers import available_providers
 from rdv.adapters.media.images import PillowImageSource
 from rdv.adapters.media.renderer import PillowRenderer
+from rdv.adapters.media.video import OpenCvVideoSink, OpenCvVideoSource
 from rdv.adapters.models.manifest import ModelManifest, default_manifest_path
 from rdv.adapters.models.store import CachedModelStore
 from rdv.adapters.reporting.detections_json import DetectionsJsonWriter
 from rdv.adapters.reporting.summary_md import SummaryWriter
-from rdv.application.ports import DEFAULT_SCORE_THRESHOLD
+from rdv.application.ports import DEFAULT_SCORE_THRESHOLD, Detector
 from rdv.config.settings import Settings
 from rdv.errors import ModelError
 
@@ -103,6 +105,79 @@ def build_detector(
         model_version=entry.version if entry is not None else None,
         model_license=entry.license if entry is not None else None,
     )
+
+
+def build_video_source(path: Path) -> OpenCvVideoSource:
+    """Open a video through the OpenCV adapter (S6)."""
+    return OpenCvVideoSource(path)
+
+
+def build_video_sink() -> OpenCvVideoSink:
+    """Atomic ``mp4v`` encoder for annotated videos (S6)."""
+    return OpenCvVideoSink()
+
+
+def _torch_cuda_name() -> str | None:
+    """Return the first CUDA device name, or ``None`` without torch/CUDA.
+
+    ``importlib`` is intentional: the torch stack is optional and must never be
+    imported by the base install (S2), and the architecture contract forbids a
+    static import outside ``rdv.adapters.training``.
+    """
+    try:
+        torch = importlib.import_module("torch")
+    except ImportError:
+        return None
+    try:
+        if not bool(torch.cuda.is_available()):
+            return None
+        return str(torch.cuda.get_device_name(0))
+    except Exception:  # pragma: no cover - driver/runtime failures are not fatal
+        return None
+
+
+def describe_gpu() -> str | None:
+    """Human-readable GPU name for benchmark reports, or ``None``."""
+    return _torch_cuda_name()
+
+
+def build_benchmark_gpu_detector(
+    settings: Settings,
+    *,
+    model: str | None = None,
+    manifest: ModelManifest | None = None,
+) -> Detector | None:
+    """Build the optional torch CUDA detector used by ``rdv benchmark`` (S11).
+
+    The ``TorchDetector`` adapter arrives with T9; until then, or on a CPU-only
+    host, this returns ``None`` and the benchmark reports the CPU row only.
+    """
+    if _torch_cuda_name() is None:
+        return None
+    try:
+        module = importlib.import_module("rdv.adapters.inference.torch_detector")
+    except ImportError:
+        return None
+    factory = getattr(module, "TorchDetector", None)
+    if factory is None:
+        return None
+    store = build_model_store(settings, manifest=manifest)
+    selected = model or settings.model
+    path = store.resolve(selected)
+    entry = store.entry(selected)
+    threshold = settings.score_threshold
+    if threshold is None:
+        threshold = entry.score_threshold if entry is not None else DEFAULT_SCORE_THRESHOLD
+    try:
+        detector: Detector = factory(
+            path,
+            device="cuda",
+            score_threshold=threshold,
+            model_id=entry.id if entry is not None else path.stem,
+        )
+    except TypeError:  # pragma: no cover - factory signature drift
+        return None
+    return detector
 
 
 def build_media_source() -> PillowImageSource:

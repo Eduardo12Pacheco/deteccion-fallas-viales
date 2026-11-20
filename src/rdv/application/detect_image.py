@@ -63,23 +63,23 @@ class DetectImagesResult:
         return sum(len(image.detections) for image in self.images)
 
 
-def _round(value: float, digits: int = 6) -> float:
+def round_value(value: float, digits: int = 6) -> float:
     return round(float(value), digits)
 
 
-def _class_counts(detections: Sequence[Detection]) -> dict[str, int]:
+def class_counts(detections: Sequence[Detection]) -> dict[str, int]:
     counts = dict.fromkeys((damage_class.code for damage_class in _CLASS_ORDER), 0)
     for detection in detections:
         counts[detection.damage_class.code] += 1
     return counts
 
 
-def _detection_payload(detection: Detection) -> dict[str, Any]:
+def detection_payload(detection: Detection) -> dict[str, Any]:
     return {
         "class": detection.damage_class.code,
         "name": detection.damage_class.display_name,
-        "score": _round(detection.score),
-        "box": [_round(value, 2) for value in detection.bbox.to_xyxy()],
+        "score": round_value(detection.score),
+        "box": [round_value(value, 2) for value in detection.bbox.to_xyxy()],
         "track_id": None,
     }
 
@@ -110,23 +110,23 @@ def build_detections_document(
             "height": height,
         },
         "params": {
-            "score_threshold": _round(score_threshold),
+            "score_threshold": round_value(score_threshold),
             "device": model.device,
         },
         "frames": [
             {
                 "index": 0,
                 "t": None,
-                "detections": [_detection_payload(detection) for detection in detections],
+                "detections": [detection_payload(detection) for detection in detections],
             }
         ],
         "summary": {
-            "counts": _class_counts(detections),
+            "counts": class_counts(detections),
             "unique_instances": None,
             "frames_analyzed": 1,
             "frames_with_damage": 1 if detections else 0,
-            "coverage_ratio": _round(summary.coverage_ratio),
-            "max_score": _round(summary.max_score),
+            "coverage_ratio": round_value(summary.coverage_ratio),
+            "max_score": round_value(summary.max_score),
         },
     }
 
@@ -140,7 +140,7 @@ def build_summary_document(
     """Build the aggregate ``rdv.summary/v1`` view-model for one run."""
     counts = dict.fromkeys((damage_class.code for damage_class in _CLASS_ORDER), 0)
     for image in images:
-        for code, count in _class_counts(image.detections).items():
+        for code, count in class_counts(image.detections).items():
             counts[code] += count
     total_detections = sum(len(image.detections) for image in images)
     max_score = max(
@@ -159,15 +159,15 @@ def build_summary_document(
             "input_size": model.input_size,
         },
         "params": {
-            "score_threshold": _round(score_threshold),
+            "score_threshold": round_value(score_threshold),
             "device": model.device,
         },
         "totals": {
             "images": len(images),
             "detections": total_detections,
             "images_with_damage": sum(1 for image in images if image.detections),
-            "max_score": _round(max_score),
-            "mean_coverage_ratio": _round(mean_coverage),
+            "max_score": round_value(max_score),
+            "mean_coverage_ratio": round_value(mean_coverage),
         },
         "classes": {
             code: {"name": DamageClass[code].display_name, "count": count}
@@ -179,8 +179,8 @@ def build_summary_document(
                 "width": image.width,
                 "height": image.height,
                 "detections": len(image.detections),
-                "max_score": _round(image.summary.max_score),
-                "coverage_ratio": _round(image.summary.coverage_ratio),
+                "max_score": round_value(image.summary.max_score),
+                "coverage_ratio": round_value(image.summary.coverage_ratio),
                 "annotated": image.annotated.name,
                 "detections_json": image.detections_json.name,
             }

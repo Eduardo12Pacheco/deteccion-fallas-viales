@@ -1,4 +1,22 @@
 {
   "schema": "rdv.models/v1",
-  "models": []
+  "models": [
+    {
+      "id": "rdv-rtdetrv2-r18-rdd2022",
+      "version": "v1",
+      "url": "https://github.com/Eduardo12Pacheco/road-damage-vision/releases/download/models-v1/rdv-rtdetrv2-r18-rdd2022-v1.onnx",
+      "sha256": "806be021998a850eb074892b0025e7b6361b771fe773378191039af513b9a7de",
+      "size": 80760832,
+      "classes": [
+        "D00",
+        "D10",
+        "D20",
+        "D40"
+      ],
+      "input_size": 640,
+      "recommended_score_threshold": 0.01,
+      "license": "Apache-2.0 (weights); RDD2022 derivatives CC BY-SA 4.0",
+      "metrics_ref": "reports/v1/metrics.json"
+    }
+  ]
 }

@@ -33,11 +33,20 @@ def _payload(*entries: dict[str, object]) -> dict[str, object]:
     return {"schema": "rdv.models/v1", "models": list(entries)}
 
 
-def test_the_packaged_manifest_is_valid_and_empty_until_the_first_model() -> None:
+def test_the_packaged_manifest_pins_the_published_model() -> None:
     manifest = ModelManifest.load()
 
     assert default_manifest_path().name == "models.json"
-    assert manifest.models == ()
+    assert len(manifest.models) == 1
+    published = manifest.get("rdv-rtdetrv2-r18-rdd2022")
+    assert published.version == "v1"
+    assert published.url.endswith("/rdv-rtdetrv2-r18-rdd2022-v1.onnx")
+    assert len(published.sha256) == 64
+    assert published.size == 80_760_832
+    assert published.input_size == 640
+    assert published.classes == ("D00", "D10", "D20", "D40")
+    assert 0.0 <= published.score_threshold <= 1.0
+    assert published.metrics_ref == "reports/v1/metrics.json"
 
 
 def test_valid_entry_is_parsed(tmp_path: Path) -> None:

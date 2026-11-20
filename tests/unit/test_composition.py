@@ -50,14 +50,14 @@ def test_gpu_factory_uses_a_torch_checkpoint_when_cuda_is_available(
     module.TorchDetector = FakeDetector  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, module.__name__, module)
     monkeypatch.setattr(composition, "_torch_cuda_name", lambda: "Fake GPU")
-    settings = Settings(model_dir=tmp_path / "models")
+    settings = Settings(model="rdv-rtdetrv2-r18-rdd2022", model_dir=tmp_path / "models")
 
     detector = composition.build_benchmark_gpu_detector(settings, checkpoint=tmp_path, model=None)
 
     assert isinstance(detector, FakeDetector)
     assert captured["path"] == tmp_path
     assert captured["device"] == "cuda"
-    assert captured["model_id"] == tmp_path.name
+    assert captured["model_id"] == "rdv-rtdetrv2-r18-rdd2022"
 
 
 def test_gpu_factory_returns_none_for_a_non_checkpoint_model(monkeypatch, tmp_path: Path) -> None:

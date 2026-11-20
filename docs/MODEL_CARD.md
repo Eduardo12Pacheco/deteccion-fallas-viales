@@ -8,7 +8,7 @@
 - **Code license:** MIT (this repository). **Base weights:** Apache-2.0.
   **Dataset derivatives:** CC BY-SA 4.0 stance (see
   [DATA.md](DATA.md)); the license status of the fine-tuned weights themselves
-  is discussed under [Licensing](#licensing-and-provenance).
+  is discussed under [Ethical and legal notes](#ethical-and-legal-notes).
 
 ## Model details
 

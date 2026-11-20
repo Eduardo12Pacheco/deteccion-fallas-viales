@@ -123,7 +123,7 @@ jobs:
         run: uvx twine check dist/*
       - name: Assert the wheel contents
         run: |
-          uv run python - <<'PY'
+          python3 - <<'PY'
           import glob
           import zipfile
 
@@ -167,6 +167,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
@@ -182,9 +183,16 @@ jobs:
       - name: Install the wheel with uv tool
         shell: bash
         run: |
+          tool_bin="$(uv tool dir --bin)"
           uv tool install --force dist/*.whl
-          uv tool dir --bin >> "$GITHUB_PATH"
-          "$(uv tool dir --bin)/rdv" --version
+          echo "$tool_bin" >> "$GITHUB_PATH"
+          if command -v cygpath >/dev/null 2>&1; then
+            tool_bin="$(cygpath -u "$tool_bin")"
+            exe=".exe"
+          else
+            exe=""
+          fi
+          "$tool_bin/rdv$exe" --version
       - name: Print the doctor report
         shell: bash
         run: rdv doctor --json > doctor.json

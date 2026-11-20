@@ -26,21 +26,21 @@
       "header_offset": 352223767,
       "size": 257117218,
       "crc32": "abcf66aa",
-      "sha256": null
+      "sha256": "94c65a4e6cfed187b193ba967f0a2b16bd4287dfe313d0962f3711afce75bf1d"
     },
     "India": {
       "member": "RDD2022/India.zip",
       "header_offset": 609341032,
       "size": 526709145,
       "crc32": "f186f6f8",
-      "sha256": null
+      "sha256": "28eab0aa85638855e1907e63b175be2305a0accd018c54603037d3fb8cab963a"
     },
     "Japan": {
       "member": "RDD2022/Japan.zip",
       "header_offset": 1136050224,
       "size": 1072598857,
       "crc32": "e133e2cc",
-      "sha256": null
+      "sha256": "76efe7acb4642da283891611670dac7e8866a1b1dd145b8a1540fd440b1328f7"
     },
     "Norway": {
       "member": "RDD2022/Norway.zip",

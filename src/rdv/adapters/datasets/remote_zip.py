@@ -98,14 +98,14 @@ class DatasetLock:
                     f"Malformed dataset lock {path}: country {name!r} is not an object"
                 )
             try:
-                crc_text = str(raw["crc32"])
+                crc_text = str(raw["crc32"]).removeprefix("0x")
                 sha256 = raw.get("sha256")
                 countries[str(name)] = CountryPin(
                     name=str(name),
                     member=str(raw["member"]),
                     header_offset=int(raw["header_offset"]),
                     size=int(raw["size"]),
-                    crc32=int(crc_text, 16) if not crc_text.isdigit() else int(crc_text),
+                    crc32=int(crc_text, 16),
                     sha256=str(sha256) if sha256 else None,
                 )
             except (KeyError, TypeError, ValueError) as exc:

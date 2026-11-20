@@ -99,13 +99,19 @@ def _safe_target(root: Path, name: str) -> Path:
     return target
 
 
-def _extract_country(archive_path: Path, root: Path) -> None:
-    marker = root / ".rdv-extracted"
+def _extract_country(archive_path: Path, root: Path, country: str) -> None:
+    marker = root / country / ".rdv-extracted"
     if marker.is_file():
         return
     with zipfile.ZipFile(archive_path) as zipped:
         for info in zipped.infolist():
             if info.is_dir():
+                continue
+            if not info.filename.startswith(f"{country}/"):
+                raise DatasetError(f"Unexpected member in the {country} archive: {info.filename!r}")
+            # The official test folders have no public annotations; only the
+            # labelled train tree is extracted and used by this project.
+            if not info.filename.startswith(f"{country}/train/"):
                 continue
             target = _safe_target(root, info.filename)
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -139,10 +145,30 @@ def _extract_norway(archive: RemoteZipArchive, pin: CountryPin, root: Path, coun
                 target = _safe_target(root, member)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 try:
-                    with zipped.open(member) as source, target.open("wb") as destination:
-                        shutil.copyfileobj(source, destination, length=1024 * 1024)
+                    info = zipped.getinfo(member)
                 except KeyError as exc:
                     raise DatasetError(f"Norway archive member not found: {member}") from exc
+                # Read the exact compressed range instead of a 4 MiB cache
+                # block: the sample picks random members from a 10.6 GB ZIP.
+                nested.seek(info.header_offset)
+                header = nested.read(30)
+                if len(header) < 30 or header[:4] != b"PK\x03\x04":
+                    raise DatasetError(f"Corrupt Norway archive header for {member}")
+                name_length = int.from_bytes(header[26:28], "little")
+                extra_length = int.from_bytes(header[28:30], "little")
+                nested.seek(info.header_offset + 30 + name_length + extra_length)
+                raw = nested.read(info.compress_size)
+                if info.compress_type == zipfile.ZIP_DEFLATED:
+                    payload = zlib.decompress(raw, -15)
+                elif info.compress_type == zipfile.ZIP_STORED:
+                    payload = raw
+                else:
+                    raise DatasetError(
+                        f"Unsupported compression for Norway member {member}: {info.compress_type}"
+                    )
+                if zlib.crc32(payload) & 0xFFFFFFFF != info.CRC:
+                    raise DatasetError(f"CRC32 mismatch for Norway member {member}")
+                target.write_bytes(payload)
             if index % 100 == 0 or index == count:
                 typer.echo(f"Norway: extracted {index}/{count} images")
     return count
@@ -249,25 +275,29 @@ def download(
         root = _data_root(settings)
         _downloads(settings).mkdir(parents=True, exist_ok=True)
         if full:
-            outer = _download_outer(
-                composition.open_dataset_archive(dataset_lock, offline=settings.offline),
-                dataset_lock,
-                settings,
-            )
+            full_archive = composition.open_dataset_archive(dataset_lock, offline=settings.offline)
+            try:
+                outer = _download_outer(full_archive, dataset_lock, settings)
+            finally:
+                full_archive.close()
             for country in selected:
                 pin = dataset_lock.country(country)
                 destination = _downloads(settings) / f"{country}.zip"
                 if not destination.is_file():
                     _extract_inner_from_outer(outer, pin, destination)
-                _extract_country(destination, root / country)
+                _extract_country(destination, root, country)
         else:
             archive = composition.open_dataset_archive(dataset_lock, offline=settings.offline)
             with archive:
                 for country in selected:
                     dataset_lock = _download_country(archive, dataset_lock, lock, settings, country)
-                    _extract_country(_downloads(settings) / f"{country}.zip", root / country)
+                    _extract_country(_downloads(settings) / f"{country}.zip", root, country)
         if ood_norway:
-            archive = composition.open_dataset_archive(dataset_lock, offline=settings.offline)
+            # Norway images are ~1 MB each and selected by a seeded shuffle, so
+            # a 4 MiB block would fetch four times the needed bytes per image.
+            archive = composition.open_dataset_archive(
+                dataset_lock, offline=settings.offline, block_size=64 * 1024
+            )
             with archive:
                 _extract_norway(archive, dataset_lock.country("Norway"), root, ood_norway)
         typer.echo(f"Dataset ready under {root}")

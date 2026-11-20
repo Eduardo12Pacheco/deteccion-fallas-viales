@@ -143,14 +143,17 @@ def test_explicit_cuda_without_provider_exits_four(tmp_path: Path) -> None:
     assert "CUDA" in result.stderr
 
 
-def test_video_input_exits_five_with_a_clear_message(tmp_path: Path) -> None:
+def test_corrupt_video_exits_five_without_artifacts(tmp_path: Path) -> None:
     clip = tmp_path / "clip.mp4"
     clip.write_bytes(b"\x00\x00\x00\x18ftypmp42")
+    out = tmp_path / "out"
 
-    result = _run("detect", str(clip), "--model", str(TINY_MODEL), "--out", str(tmp_path / "out"))
+    result = _run("detect", str(clip), "--model", str(TINY_MODEL), "--out", str(out))
 
     assert result.returncode == 5
-    assert "Video detection is not available yet" in result.stderr
+    assert "Cannot decode video" in result.stderr
+    assert not (out / "clip.annotated.mp4").exists()
+    assert not (out / "clip.detections.json").exists()
 
 
 def test_no_inputs_exits_five() -> None:

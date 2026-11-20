@@ -15,7 +15,7 @@ from rdv.errors import MissingExtraError
 
 
 def test_train_help_documents_the_config_and_dry_run() -> None:
-    result = CliRunner().invoke(app, ["train", "--help"])
+    result = CliRunner().invoke(app, ["train", "--help"], env={"COLUMNS": "120"})
 
     assert result.exit_code == 0, result.stderr
     assert "--config" in result.stdout
@@ -25,7 +25,7 @@ def test_train_help_documents_the_config_and_dry_run() -> None:
 
 
 def test_export_help_documents_checkpoint_and_output() -> None:
-    result = CliRunner().invoke(app, ["export", "--help"])
+    result = CliRunner().invoke(app, ["export", "--help"], env={"COLUMNS": "120"})
 
     assert result.exit_code == 0, result.stderr
     assert "--checkpoint" in result.stdout

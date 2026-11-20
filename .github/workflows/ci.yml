@@ -39,7 +39,7 @@ jobs:
         with:
           enable-cache: true
           python-version: "3.12"
-      - run: uv sync --locked
+      - run: uv sync --locked --extra train --extra cpu
       - run: uv run mypy --strict src
 
   test:

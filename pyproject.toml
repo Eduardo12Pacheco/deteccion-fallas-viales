@@ -144,6 +144,12 @@ disallow_untyped_decorators = false
 module = ["onnxruntime", "onnxruntime.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# torchvision ships no py.typed marker; all geometry sync happens in the
+# training adapter, which the architecture contract already isolates.
+module = ["torchvision", "torchvision.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]

@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-20
 - **Deciders:** project owner (plan decisions D7, D8, D9, S2, S4)
-- **Task:** T6
+- **Task:** T6, T9
 
 ## Context
 
@@ -45,6 +45,14 @@ opt-in extras:
 - The import-linter contract forbids `torch`, `torchvision`, `transformers`
   and `scipy` everywhere except `rdv.adapters.training`, so the boundary is
   enforced by a test and not by convention.
+- The T9 `TorchDetector` lives in `rdv.adapters.inference` (the plan's module
+  tree) but imports the optional stack through `importlib` at construction
+  time, so the static-import contract stays valid; without the extra it raises
+  `MissingExtraError` (exit 6) with the install hint.
+- Training weights are pinned by sha256 and verified before instantiation.
+  Export always goes through a wrapper that fixes the query axis at 300 and
+  re-saves a single file; the legacy TorchScript path is the final opset
+  fallback for the pinned `transformers<5`.
 
 ## Consequences
 
@@ -55,6 +63,9 @@ opt-in extras:
   integration test that imports the CLI and checks `sys.modules`.
 - The torch backend (`TorchDetector`, T9) is an alternative adapter behind the
   same `Detector` port; the rest of the application does not change.
+- The CLI remains importable in a base-only environment, including
+  `rdv train --help` and `rdv export --help`; only executing them loads the
+  optional stack.
 - ONNX Runtime GPU support is opt-in and not exercised by CI. The benchmark
   reports CPU numbers by default and GPU numbers only when the torch CUDA
   extra is installed.

@@ -7,6 +7,7 @@ from rdv.entrypoints.cli.benchmark import benchmark as benchmark_command
 from rdv.entrypoints.cli.data import data_app
 from rdv.entrypoints.cli.detect import detect as detect_command
 from rdv.entrypoints.cli.doctor import doctor as doctor_command
+from rdv.entrypoints.cli.evaluate import evaluate as evaluate_command
 from rdv.entrypoints.cli.models import models_app
 from rdv.entrypoints.cli.samples import samples as samples_command
 
@@ -38,11 +39,6 @@ def main_callback(
 
 
 @app.command()
-def evaluate() -> None:
-    """Evaluate a model on a labeled split."""
-
-
-@app.command()
 def train() -> None:
     """Fine-tune the detector from a configuration file."""
 
@@ -62,6 +58,7 @@ app.add_typer(models_app, name="models")
 app.command()(benchmark_command)
 app.command()(detect_command)
 app.command()(doctor_command)
+app.command()(evaluate_command)
 app.command()(samples_command)
 
 

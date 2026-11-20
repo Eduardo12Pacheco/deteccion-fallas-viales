@@ -138,6 +138,7 @@ class Rdd2022VocRepository:
         *,
         split: str = "train",
         image_loader: Callable[[Path], RgbImage] | None = None,
+        splits_path: Path | None = None,
     ) -> None:
         if not countries or any(not country.strip() for country in countries):
             raise ValueError("countries must be a non-empty sequence of names")
@@ -151,7 +152,8 @@ class Rdd2022VocRepository:
         self._countries = tuple(countries)
         self._split = split
         self._image_loader = image_loader
-        self._manifest = SplitManifest.load(self._root / "splits.json")
+        manifest_path = Path(splits_path) if splits_path is not None else self._root / "splits.json"
+        self._manifest = SplitManifest.load(manifest_path)
         selected = SPLIT_NAMES if split == "all" else (split,)
         entries: list[_Entry] = []
         for split_name in selected:
@@ -372,3 +374,106 @@ def scan_dataset_tree(
             dropped_labels=dict(dropped),
         )
     return DatasetTreeScan(countries=scans)
+
+
+class VocDirectoryRepository:
+    """``DatasetRepository`` over a plain VOC tree without ``splits.json``.
+
+    Used for the out-of-domain Norway sample, whose folder layout is
+    ``<root>/<Country>/train/{images,annotations/xmls}`` but which is not part
+    of the seeded split manifest.
+    """
+
+    def __init__(
+        self,
+        root: Path,
+        *,
+        image_loader: Callable[[Path], RgbImage] | None = None,
+    ) -> None:
+        root = Path(root)
+        if not root.is_dir():
+            raise DatasetError(f"Dataset root not found: {root}")
+        self._root = root.resolve()
+        self._image_loader = image_loader
+        entries: list[_Entry] = []
+        for country_root in sorted(self._root.iterdir()):
+            images_dir = country_root / "train" / "images"
+            if not images_dir.is_dir():
+                continue
+            for image_path in sorted(images_dir.glob("*.jpg")):
+                annotation_path = (
+                    country_root / "train" / "annotations" / "xmls" / f"{image_path.stem}.xml"
+                )
+                entries.append(
+                    _Entry(
+                        image_id=f"{country_root.name}/train/images/{image_path.name}",
+                        split="train",
+                        country=country_root.name,
+                        image_path=image_path.resolve(),
+                        annotation_path=annotation_path.resolve(),
+                    )
+                )
+        if not entries:
+            raise DatasetError(f"No VOC images found under {root}")
+        self._entries = tuple(entries)
+        self._entries_by_id = {entry.image_id: entry for entry in entries}
+        self._stats: DatasetStats | None = None
+
+    def __iter__(self) -> Iterator[AnnotatedImage]:
+        """Yield metadata-only images in country then id order."""
+        for entry in self._entries:
+            yield self._load_annotation(entry)
+
+    def __len__(self) -> int:
+        return len(self._entries)
+
+    def _load_annotation(self, entry: _Entry) -> AnnotatedImage:
+        if not entry.image_path.is_file():
+            raise DatasetError(f"Image file not found for {entry.image_id!r}: {entry.image_path}")
+        parsed = parse_voc_file(entry.annotation_path)
+        return AnnotatedImage(
+            image_id=entry.image_id,
+            width=parsed.width,
+            height=parsed.height,
+            annotations=parsed.annotations,
+        )
+
+    def load_image(self, image_id: str) -> RgbImage:
+        """Decode one image lazily."""
+        entry = self._entries_by_id.get(image_id)
+        if entry is None:
+            raise DatasetError(f"Image id is not part of this repository: {image_id!r}")
+        if self._image_loader is not None:
+            return Rdd2022VocRepository._as_rgb(self._image_loader(entry.image_path), entry)
+        try:
+            with Image.open(entry.image_path) as image:
+                pixels = np.asarray(image.convert("RGB"), dtype=np.uint8)
+        except (OSError, ValueError) as exc:
+            raise DatasetError(f"Cannot decode image {entry.image_path}: {exc}") from exc
+        return Rdd2022VocRepository._as_rgb(pixels, entry)
+
+    def stats(self) -> DatasetStats:
+        """Scan annotations once and cache aggregate counts."""
+        if self._stats is not None:
+            return self._stats
+        images: Counter[str] = Counter()
+        countries: Counter[str] = Counter()
+        classes: Counter[str] = Counter()
+        dropped: Counter[str] = Counter()
+        for entry in self._entries:
+            if not entry.image_path.is_file():
+                raise DatasetError(
+                    f"Image file not found for {entry.image_id!r}: {entry.image_path}"
+                )
+            parsed = parse_voc_file(entry.annotation_path)
+            images[entry.split] += 1
+            countries[entry.country] += 1
+            classes.update(annotation.damage_class.code for annotation in parsed.annotations)
+            dropped.update(parsed.dropped_labels)
+        self._stats = DatasetStats(
+            images=dict(images),
+            countries=dict(countries),
+            classes=dict(classes),
+            dropped_labels=dict(dropped),
+        )
+        return self._stats

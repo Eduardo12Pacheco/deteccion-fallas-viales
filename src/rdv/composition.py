@@ -14,7 +14,12 @@ from typing import Any
 
 import httpx
 
-from rdv.adapters.datasets.rdd2022 import DatasetTreeScan, scan_dataset_tree
+from rdv.adapters.datasets.rdd2022 import (
+    DatasetTreeScan,
+    Rdd2022VocRepository,
+    VocDirectoryRepository,
+    scan_dataset_tree,
+)
 from rdv.adapters.datasets.remote_zip import (
     DEFAULT_BLOCK_SIZE,
     DatasetLock,
@@ -30,9 +35,15 @@ from rdv.adapters.models.manifest import ModelManifest, default_manifest_path
 from rdv.adapters.models.store import CachedModelStore
 from rdv.adapters.reporting.detections_json import DetectionsJsonWriter
 from rdv.adapters.reporting.summary_md import SummaryWriter
-from rdv.application.ports import DEFAULT_SCORE_THRESHOLD, Detector
+from rdv.application.ports import (
+    DEFAULT_SCORE_THRESHOLD,
+    Detector,
+)
+from rdv.application.ports import (
+    EvaluationReportWriter as EvaluationReportWriterPort,
+)
 from rdv.config.settings import Settings
-from rdv.errors import ModelError
+from rdv.errors import DatasetError, ModelError
 
 
 def load_dataset_lock(path: Path) -> DatasetLock:
@@ -198,6 +209,56 @@ def build_detections_writer() -> DetectionsJsonWriter:
 def build_summary_writer() -> SummaryWriter:
     """Aggregate summary writer (JSON and Markdown from one view-model)."""
     return SummaryWriter()
+
+
+def build_evaluation_report_writer() -> EvaluationReportWriterPort:
+    """S7 report adapter: JSON, Markdown, HTML, plots, CSVs and gallery.
+
+    Imported lazily so the base CLI and the desktop bundle never load
+    matplotlib unless an evaluation report is actually requested.
+    """
+    from rdv.adapters.reporting.eval_report import EvaluationReportWriter
+
+    return EvaluationReportWriter()
+
+
+def discover_countries(root: Path) -> tuple[str, ...]:
+    """Return the country folders that contain a downloaded train tree."""
+    root = Path(root)
+    if not root.is_dir():
+        raise DatasetError(f"Dataset root not found: {root}")
+    countries = tuple(
+        sorted(
+            child.name
+            for child in root.iterdir()
+            if child.is_dir() and (child / "train" / "images").is_dir()
+        )
+    )
+    if not countries:
+        raise DatasetError(f"No downloaded countries found under {root}")
+    return countries
+
+
+def open_evaluation_repository(
+    root: Path,
+    *,
+    split: str,
+    countries: Sequence[str] | None = None,
+    splits_path: Path | None = None,
+) -> Rdd2022VocRepository:
+    """Open a labeled RDD2022 split for ``rdv evaluate``."""
+    selected = countries if countries is not None else discover_countries(root)
+    return Rdd2022VocRepository(
+        root,
+        selected,
+        split=split,
+        splits_path=splits_path,
+    )
+
+
+def open_ood_repository(root: Path) -> VocDirectoryRepository:
+    """Open the unlabeled-split OOD sample (Norway) for ``--ood``."""
+    return VocDirectoryRepository(root)
 
 
 def doctor_report(settings: Settings) -> dict[str, Any]:

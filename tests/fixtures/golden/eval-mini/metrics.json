@@ -1,0 +1,273 @@
+{
+  "confusion_matrix": {
+    "labels": [
+      "D00",
+      "D10",
+      "D20",
+      "D40",
+      "background"
+    ],
+    "values": [
+      [
+        0,
+        0,
+        0,
+        0,
+        3
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        3
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        4
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        4
+      ],
+      [
+        16,
+        0,
+        0,
+        0,
+        0
+      ]
+    ]
+  },
+  "dataset": {
+    "classes": {
+      "D00": 3,
+      "D10": 3,
+      "D20": 4,
+      "D40": 4
+    },
+    "countries": {
+      "Czech": 5,
+      "India": 6,
+      "Japan": 5
+    },
+    "ground_truth_boxes": 14,
+    "images": 16,
+    "score_threshold": 0.001,
+    "split": "all"
+  },
+  "errors": {
+    "counts": {
+      "background": 16,
+      "classification": 0,
+      "duplicate": 0,
+      "localization": 0,
+      "missed": 14
+    },
+    "total_false_positives": 16,
+    "total_missed": 14
+  },
+  "gallery": {
+    "per_category": {
+      "background": 6,
+      "classification": 0,
+      "duplicate": 0,
+      "localization": 0,
+      "missed": 6
+    },
+    "total_cases": 12
+  },
+  "metrics": {
+    "iou_thresholds": [
+      0.5,
+      0.55,
+      0.6,
+      0.65,
+      0.7,
+      0.75,
+      0.8,
+      0.85,
+      0.9,
+      0.95
+    ],
+    "map_50": 0.0,
+    "map_50_95": 0.0,
+    "per_class": {
+      "D00": {
+        "ap_50": 0.0,
+        "ap_50_95": 0.0,
+        "num_gt": 3
+      },
+      "D10": {
+        "ap_50": 0.0,
+        "ap_50_95": 0.0,
+        "num_gt": 3
+      },
+      "D20": {
+        "ap_50": 0.0,
+        "ap_50_95": 0.0,
+        "num_gt": 4
+      },
+      "D40": {
+        "ap_50": 0.0,
+        "ap_50_95": 0.0,
+        "num_gt": 4
+      }
+    }
+  },
+  "model": {
+    "id": "tiny-detector",
+    "input_size": 640,
+    "sha256": "f1a7341c0788f86b57cc69a263d448f879e9d3d915990f0069adafde2959a123"
+  },
+  "ood": null,
+  "operating_point": {
+    "f1": 0.0,
+    "false_positives": 1,
+    "precision": 0.0,
+    "recall": 0.0,
+    "threshold": 0.993307,
+    "true_positives": 0
+  },
+  "params": {
+    "device": "cpu",
+    "max_images": null,
+    "operating_source": "val",
+    "operating_threshold": 0.993307,
+    "score_threshold": 0.001,
+    "split": "all"
+  },
+  "per_country": {
+    "Czech": {
+      "ground_truth_boxes": 4,
+      "images": 5,
+      "iou_thresholds": [
+        0.5,
+        0.55,
+        0.6,
+        0.65,
+        0.7,
+        0.75,
+        0.8,
+        0.85,
+        0.9,
+        0.95
+      ],
+      "map_50": 0.0,
+      "map_50_95": 0.0,
+      "per_class": {
+        "D00": {
+          "ap_50": 0.0,
+          "ap_50_95": 0.0,
+          "num_gt": 1
+        },
+        "D10": {
+          "ap_50": 0.0,
+          "ap_50_95": 0.0,
+          "num_gt": 1
+        },
+        "D20": {
+          "ap_50": 0.0,
+          "ap_50_95": 0.0,
+          "num_gt": 1
+        },
+        "D40": {
+          "ap_50": 0.0,
+          "ap_50_95": 0.0,
+          "num_gt": 1
+        }
+      }
+    },
+    "India": {
+      "ground_truth_boxes": 6,
+      "images": 6,
+      "iou_thresholds": [
+        0.5,
+        0.55,
+        0.6,
+        0.65,
+        0.7,
+        0.75,
+        0.8,
+        0.85,
+        0.9,
+        0.95
+      ],
+      "map_50": 0.0,
+      "map_50_95": 0.0,
+      "per_class": {
+        "D00": {
+          "ap_50": 0.0,
+          "ap_50_95": 0.0,
+          "num_gt": 1
+        },
+        "D10": {
+          "ap_50": 0.0,
+          "ap_50_95": 0.0,
+          "num_gt": 1
+        },
+        "D20": {
+          "ap_50": 0.0,
+          "ap_50_95": 0.0,
+          "num_gt": 2
+        },
+        "D40": {
+          "ap_50": 0.0,
+          "ap_50_95": 0.0,
+          "num_gt": 2
+        }
+      }
+    },
+    "Japan": {
+      "ground_truth_boxes": 4,
+      "images": 5,
+      "iou_thresholds": [
+        0.5,
+        0.55,
+        0.6,
+        0.65,
+        0.7,
+        0.75,
+        0.8,
+        0.85,
+        0.9,
+        0.95
+      ],
+      "map_50": 0.0,
+      "map_50_95": 0.0,
+      "per_class": {
+        "D00": {
+          "ap_50": 0.0,
+          "ap_50_95": 0.0,
+          "num_gt": 1
+        },
+        "D10": {
+          "ap_50": 0.0,
+          "ap_50_95": 0.0,
+          "num_gt": 1
+        },
+        "D20": {
+          "ap_50": 0.0,
+          "ap_50_95": 0.0,
+          "num_gt": 1
+        },
+        "D40": {
+          "ap_50": 0.0,
+          "ap_50_95": 0.0,
+          "num_gt": 1
+        }
+      }
+    }
+  },
+  "schema": "rdv.metrics/v1",
+  "tool": {
+    "name": "road-damage-vision",
+    "version": "0.1.0"
+  }
+}

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import re
-
 from typer.testing import CliRunner
 
 from rdv.entrypoints.cli.app import app
@@ -32,14 +30,16 @@ def test_version_prints_name_and_version() -> None:
 
 
 def test_help_lists_exactly_the_documented_commands() -> None:
-    result = runner.invoke(app, ["--help"])
+    result = runner.invoke(app, ["--help"], env={"COLUMNS": "120"})
 
     assert result.exit_code == 0
-    listed: set[str] = set()
-    for line in result.stdout.splitlines():
-        row = line.strip().strip("│").strip()
-        match = re.match(r"([a-z][a-z0-9-]*)\s{2,}\S", row)
-        if match:
-            listed.add(match.group(1))
-
-    assert listed == EXPECTED_COMMANDS
+    registered = {
+        command.name or command.callback.__name__
+        for command in app.registered_commands
+        if command.callback is not None
+    }
+    assert registered == EXPECTED_COMMANDS
+    # The rendered help can be a Rich table or plain text depending on the
+    # terminal, so assert on the names instead of the table layout.
+    for name in EXPECTED_COMMANDS:
+        assert name in result.stdout

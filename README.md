@@ -13,8 +13,8 @@ Detect road damage in images and video with a reproducible RT-DETRv2 pipeline, O
 | AP@0.5 D10 | 0.3089 |
 | AP@0.5 D20 | 0.4955 |
 | AP@0.5 D40 | 0.3749 |
-| CPU p50 (ms/image) | 167.1 |
-| GPU p50 (ms/image) | 14.7 |
+| CPU p50 (ms/image) | 156.3 |
+| GPU p50 (ms/image) | 14.1 |
 | OOD Norway mAP@0.5 | 0.0588 |
 | OOD Norway mAP@0.5:0.95 | 0.0229 |
 | S10 status | PASS (>= min bar) |

@@ -179,9 +179,9 @@ Twenty-four worst cases (six per category, capped at 24) are committed under
 ## Inference performance
 
 Measured by `rdv benchmark` on the artifact (batch 1, 640x640 input, 20 warmup +
-100 timed runs): CPU p50 **167.1 ms** (p95 219.2 ms, 12th Gen Intel i5-12400T,
-ONNX Runtime) and GPU p50 **14.7 ms** (p95 16.1 ms, RTX 4060, torch bf16).
-Synthetic 320x240 video throughput on CPU: **6.03 analyzed frames/s**. Both S11
+100 timed runs): CPU p50 **156.3 ms** (p95 210.1 ms, 12th Gen Intel i5-12400T,
+ONNX Runtime) and GPU p50 **14.1 ms** (p95 16.1 ms, RTX 4060, torch bf16).
+Synthetic 320x240 video throughput on CPU: **6.09 analyzed frames/s**. Both S11
 sanity gates pass (CPU <= 1500 ms, GPU <= 100 ms). Full hardware and run
 configuration: [`reports/v1/benchmark.json`](../reports/v1/benchmark.json).
 

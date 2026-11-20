@@ -192,12 +192,11 @@ the comparison on eight validation images (matched-row maximum `3.2e-5`).
 
 `rdv benchmark --model <onnx> --checkpoint runs/v1/selected` adds the torch bf16
 GPU row; the published numbers are in
-[`reports/v1/benchmark.json`](../reports/v1/benchmark.json): CPU p50 167.1 ms
-(p95 219.2 ms), GPU p50 14.7 ms (p95 16.1 ms), CPU video 6.03 analyzed
-frames/s. Both S11 gates pass. The benchmark resolves the local `.onnx` path,
-so its `model.id` is the file stem and its recorded `score_threshold` is the
-local-file fallback (0.25); latency is independent of the decode threshold, and
-the artifact sha256 matches the manifest. `TorchDetector`
+[`reports/v1/benchmark.json`](../reports/v1/benchmark.json): CPU p50 156.3 ms
+(p95 210.1 ms), GPU p50 14.1 ms (p95 16.1 ms), CPU video 6.09 analyzed
+frames/s. Both S11 gates pass. The local `.onnx` path is matched to the
+manifest by sha256, so the benchmark records the published `model.id` and the
+recommended threshold. `TorchDetector`
 loads a checkpoint directory, uses bf16 autocast on CUDA and float32 on CPU,
 and shares the pure-numpy decode with the ONNX detector. The adapter imports
 torch through `importlib`, because the architecture contract allows a static

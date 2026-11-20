@@ -1,0 +1,226 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "road-damage-vision"
+version = "0.1.0"
+description = "Reproducible road-damage detection with RT-DETRv2, ONNX, and a local browser UI."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+authors = [{ name = "Eduardo Pacheco" }]
+keywords = ["computer-vision", "object-detection", "road-damage", "rt-detr", "onnx"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Image Recognition",
+]
+dependencies = [
+  "numpy>=2.0",
+  "pillow>=11",
+  "opencv-python-headless>=4.10",
+  "onnxruntime>=1.20",
+  "typer>=0.15",
+  "rich>=13",
+  "pydantic>=2.9",
+  "pydantic-settings>=2.6",
+  "structlog>=24",
+  "platformdirs>=4",
+  "httpx>=0.27",
+  "fastapi>=0.115",
+  "uvicorn>=0.32",
+  "python-multipart>=0.0.12",
+  "matplotlib>=3.9",
+  "jinja2>=3.1",
+]
+
+[project.optional-dependencies]
+train = [
+  "transformers>=4.57.3,<5",
+  "scipy>=1.13",
+  "pyyaml>=6",
+  "huggingface_hub",
+]
+cpu = ["torch>=2.11,<3", "torchvision>=0.26"]
+cuda = ["torch>=2.11,<3", "torchvision>=0.26"]
+
+[project.scripts]
+rdv = "rdv.entrypoints.cli.app:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-cov>=6",
+  "pytest-socket>=0.7",
+  "pytest-playwright>=0.6",
+  "hypothesis>=6.120",
+  "jsonschema>=4.23",
+  "onnx>=1.17",
+  "pycocotools>=2.0.8",
+  "ruff>=0.8",
+  "mypy>=1.13",
+  "import-linter>=2.2",
+  "pip-audit>=2.7",
+  "pip-licenses>=5",
+  "types-PyYAML",
+]
+build = ["pyinstaller>=6.11"]
+
+[tool.uv]
+default-groups = ["dev"]
+conflicts = [[{ extra = "cpu" }, { extra = "cuda" }]]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu130", extra = "cuda" },
+]
+torchvision = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu130", extra = "cuda" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rdv"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src/rdv",
+  "/tests",
+  "/README.md",
+  "/LICENSE",
+  "/CHANGELOG.md",
+  "/pyproject.toml",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+extend-exclude = ["runs", "artifacts", "dist", "build"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["rdv"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+show_error_codes = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = ["rdv.adapters.training.*"]
+disallow_untyped_decorators = false
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config --disable-socket --allow-unix-socket"
+markers = [
+  "train: needs torch and the train extra",
+  "ui: needs Playwright and localhost sockets",
+  "parity: compares the numpy metrics engine against pycocotools",
+  "realmodel: needs RDV_REAL_MODEL and never runs in CI",
+]
+
+[tool.coverage.run]
+source = ["rdv"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = true
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:",
+]
+
+[tool.importlinter]
+root_package = "rdv"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Hexagonal layers"
+type = "layers"
+layers = [
+  "rdv.entrypoints",
+  "rdv.composition",
+  "rdv.adapters",
+  "rdv.application",
+  "rdv.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "Domain and application stay pure"
+type = "forbidden"
+source_modules = ["rdv.domain", "rdv.application"]
+forbidden_modules = [
+  "cv2",
+  "PIL",
+  "onnxruntime",
+  "torch",
+  "torchvision",
+  "transformers",
+  "fastapi",
+  "httpx",
+  "typer",
+  "matplotlib",
+  "yaml",
+  "scipy",
+]
+
+[[tool.importlinter.contracts]]
+name = "Driven adapters are independent"
+type = "independence"
+modules = [
+  "rdv.adapters.inference",
+  "rdv.adapters.datasets",
+  "rdv.adapters.models",
+  "rdv.adapters.media",
+  "rdv.adapters.reporting",
+  "rdv.adapters.training",
+]
+
+[[tool.importlinter.contracts]]
+name = "Only the training adapter imports the torch stack"
+type = "forbidden"
+source_modules = [
+  "rdv.domain",
+  "rdv.application",
+  "rdv.composition",
+  "rdv.entrypoints",
+  "rdv.adapters.inference",
+  "rdv.adapters.datasets",
+  "rdv.adapters.models",
+  "rdv.adapters.media",
+  "rdv.adapters.reporting",
+]
+forbidden_modules = ["torch", "torchvision", "transformers", "scipy"]

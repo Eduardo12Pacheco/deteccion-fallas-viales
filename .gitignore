@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.uv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Tooling
+node_modules/
+.playwright/
+*.log
+
+# Run artifacts (never committed)
+runs/
+artifacts/
+reports/local/
+
+# Datasets and model weights (never committed)
+*.pt
+*.pth
+*.onnx
+!tests/fixtures/models/*.onnx
+*.part
+/data/downloads/
+/data/rdd2022/
+/data/rdd2022-ood-norway/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,86 @@
+"""Command-line interface for road-damage-vision."""
+
+import typer
+
+from rdv import __version__
+
+app = typer.Typer(
+    name="rdv",
+    help="Detect road damage in images and video.",
+    add_completion=False,
+    no_args_is_help=True,
+)
+
+
+def _version_callback(value: bool) -> None:
+    if value:
+        typer.echo(f"rdv {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def main_callback(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        callback=_version_callback,
+        is_eager=True,
+        help="Show the version and exit.",
+    ),
+) -> None:
+    """Detect road damage in images and video."""
+
+
+@app.command()
+def detect() -> None:
+    """Detect damage in images or video."""
+
+
+@app.command()
+def evaluate() -> None:
+    """Evaluate a model on a labeled split."""
+
+
+@app.command()
+def train() -> None:
+    """Fine-tune the detector from a configuration file."""
+
+
+@app.command()
+def export() -> None:
+    """Export a checkpoint to ONNX."""
+
+
+@app.command()
+def serve() -> None:
+    """Start the local web app."""
+
+
+@app.command()
+def models() -> None:
+    """List, pull, and verify model files."""
+
+
+@app.command()
+def data() -> None:
+    """Download, prepare, and inspect datasets."""
+
+
+@app.command()
+def benchmark() -> None:
+    """Measure inference latency and throughput."""
+
+
+@app.command()
+def doctor() -> None:
+    """Report environment and model status."""
+
+
+@app.command()
+def samples() -> None:
+    """Copy the packaged sample images."""
+
+
+def main() -> None:
+    """Console-script entry point."""
+    app()

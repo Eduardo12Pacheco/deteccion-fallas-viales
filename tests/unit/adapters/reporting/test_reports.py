@@ -96,3 +96,53 @@ def test_summary_markdown_is_deterministic(tmp_path: Path) -> None:
     writer.write_summary_markdown(second, _summary_document())
 
     assert first.read_bytes() == second.read_bytes()
+
+
+def test_markdown_renders_the_video_sections_and_truncation() -> None:
+    document = {
+        "schema": "rdv.summary/v1",
+        "model": {"id": "tiny-detector", "sha256": "a" * 64, "input_size": 640},
+        "params": {
+            "score_threshold": 0.25,
+            "device": "cpu",
+            "analysis_fps": 5.0,
+            "max_frames": 10,
+        },
+        "totals": {
+            "videos": 1,
+            "frames_processed": 10,
+            "frames_analyzed": 5,
+            "frames_with_damage": 4,
+            "detections": 8,
+            "max_score": 0.99,
+            "mean_coverage_ratio": 0.05,
+            "truncated": True,
+        },
+        "classes": {
+            "D00": {"name": "Longitudinal crack", "count": 4, "unique_instances": 2},
+            "D10": {"name": "Transverse crack", "count": 0, "unique_instances": 0},
+            "D20": {"name": "Alligator crack", "count": 0, "unique_instances": 0},
+            "D40": {"name": "Pothole", "count": 4, "unique_instances": 1},
+        },
+        "videos": [
+            {
+                "path": "clip.mp4",
+                "width": 320,
+                "height": 240,
+                "frames_analyzed": 5,
+                "frames_with_damage": 4,
+                "detections": 8,
+                "max_score": 0.99,
+                "coverage_ratio": 0.05,
+                "annotated": "clip.annotated.mp4",
+            }
+        ],
+    }
+
+    markdown = render_markdown(document)
+
+    assert "- Frames analyzed: 5" in markdown
+    assert "- Max frames: 10" in markdown
+    assert "Stopped early: yes" in markdown
+    assert "| D00 | Longitudinal crack | 4 | 2 |" in markdown
+    assert "clip.annotated.mp4" in markdown

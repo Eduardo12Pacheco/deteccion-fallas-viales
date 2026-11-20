@@ -26,28 +26,86 @@ def render_markdown(document: Mapping[str, Any]) -> str:
     model = document.get("model", {})
     params = document.get("params", {})
     totals = document.get("totals", {})
+    is_video = "videos" in document
     lines = [
         "# Detection summary",
         "",
         f"- Model: `{_cell(model.get('id', 'unknown'))}` "
         f"(device `{_cell(params.get('device', '?'))}`)",
         f"- Score threshold: {_cell(params.get('score_threshold', '?'))}",
-        f"- Images: {_cell(totals.get('images', 0))}",
-        f"- Detections: {_cell(totals.get('detections', 0))}",
-        f"- Images with damage: {_cell(totals.get('images_with_damage', 0))}",
-        f"- Max score: {_cell(totals.get('max_score', 0.0))}",
-        "",
-        "## Detections per class",
-        "",
-        "| Class | Name | Count |",
-        "|-------|------|-------|",
     ]
+    if is_video:
+        lines.extend(
+            [
+                f"- Videos: {_cell(totals.get('videos', 0))}",
+                f"- Frames processed: {_cell(totals.get('frames_processed', 0))}",
+                f"- Frames analyzed: {_cell(totals.get('frames_analyzed', 0))}",
+                f"- Frames with damage: {_cell(totals.get('frames_with_damage', 0))}",
+                f"- Analysis FPS: {_cell(params.get('analysis_fps', '?'))}",
+            ]
+        )
+        if params.get("max_frames") is not None:
+            lines.append(f"- Max frames: {_cell(params.get('max_frames'))}")
+        if totals.get("truncated"):
+            lines.append("- Stopped early: yes (--max-frames)")
+    else:
+        lines.extend(
+            [
+                f"- Images: {_cell(totals.get('images', 0))}",
+                f"- Images with damage: {_cell(totals.get('images_with_damage', 0))}",
+            ]
+        )
+    lines.extend(
+        [
+            f"- Detections: {_cell(totals.get('detections', 0))}",
+            f"- Max score: {_cell(totals.get('max_score', 0.0))}",
+            "",
+            "## Detections per class",
+            "",
+            "| Class | Name | Count |" + (" Unique instances |" if is_video else ""),
+            "|-------|------|-------|" + ("------------------|" if is_video else ""),
+        ]
+    )
     classes = document.get("classes", {})
     for code in _CLASS_ORDER:
         entry = classes.get(code, {})
-        lines.append(
-            f"| {code} | {_cell(entry.get('name', ''))} | {_cell(entry.get('count', 0))} |"
+        row = f"| {code} | {_cell(entry.get('name', ''))} | {_cell(entry.get('count', 0))} |"
+        if is_video:
+            row += f" {_cell(entry.get('unique_instances', 0))} |"
+        lines.append(row)
+    if is_video:
+        lines.extend(
+            [
+                "",
+                "## Videos",
+                "",
+                "| File | Width | Height | Frames analyzed | Frames with damage "
+                "| Detections | Max score | Coverage | Annotated |",
+                "|------|-------|--------|-----------------|--------------------"
+                "|------------|-----------|----------|-----------|",
+            ]
         )
+        for video in document.get("videos", []):
+            lines.append(
+                "| "
+                + " | ".join(
+                    _cell(value)
+                    for value in (
+                        video.get("path", ""),
+                        video.get("width", ""),
+                        video.get("height", ""),
+                        video.get("frames_analyzed", 0),
+                        video.get("frames_with_damage", 0),
+                        video.get("detections", 0),
+                        video.get("max_score", 0.0),
+                        video.get("coverage_ratio", 0.0),
+                        video.get("annotated", ""),
+                    )
+                )
+                + " |"
+            )
+        lines.append("")
+        return "\n".join(lines)
     lines.extend(
         [
             "",

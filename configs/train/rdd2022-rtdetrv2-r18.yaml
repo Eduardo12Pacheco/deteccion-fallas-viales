@@ -1,0 +1,42 @@
+seed: 42
+
+model:
+  hf_id: PekingU/rtdetr_v2_r18vd
+  revision: 5650961749fa93567c0d46fc7f43ea4f9e914107
+  weights_sha256: "d18309d0d7ea57048138885c4c6ecfcb1e24506fc6153b94ad484f8ab62c7115"
+  input_size: 640
+  num_labels: 4
+
+data:
+  countries: [Japan, India, Czech]
+  splits: {seed: 42, block_size: 100, ratios: [0.8, 0.1, 0.1]}
+  ood: {Norway: 1000}
+
+train:
+  epochs: 24
+  effective_batch: 16
+  lr: 1.0e-4
+  backbone_lr: 1.0e-5
+  weight_decay: 1.0e-4
+  warmup_steps: 500
+  lr_min_factor: 0.01
+  grad_clip: 0.1
+  precision: bf16
+  ema: {decay: 0.9999, warmup: true}
+  eval_every: 2
+  num_workers: 8
+  max_images_per_epoch: null
+
+augment:
+  resize: [640, 640]
+  hflip: 0.5
+  photometric_distort: 0.5
+  affine: {p: 0.5, translate: 0.1, scale: [0.8, 1.2]}
+  vflip: false
+  rot90: false
+  zoom_out: false
+
+budget:
+  max_hours: 10
+  min_epochs: 12
+  vram_cap_gb: 7.2

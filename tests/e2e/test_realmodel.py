@@ -98,7 +98,36 @@ def test_onnx_matches_the_checkpoint_on_eight_validation_images() -> None:
             tensor = preprocess_image(repository.load_image(annotation.image_id))
             logits_t, boxes_t = wrapper(torch.from_numpy(tensor))
             logits_o, boxes_o = session.run(None, {"pixel_values": tensor})
-            logits_diff = float(np.max(np.abs(logits_o - logits_t.cpu().numpy())))
-            boxes_diff = float(np.max(np.abs(boxes_o - boxes_t.cpu().numpy())))
-            assert logits_diff <= 1e-3, (annotation.image_id, logits_diff)
-            assert boxes_diff <= 1e-3, (annotation.image_id, boxes_diff)
+            expected_logits = logits_t.cpu().numpy()
+            expected_boxes = boxes_t.cpu().numpy()
+            logits_diff = float(np.max(np.abs(logits_o - expected_logits)))
+            boxes_diff = float(np.max(np.abs(boxes_o - expected_boxes)))
+            if logits_diff <= 1e-3 and boxes_diff <= 1e-3:
+                continue
+            # The decoder selects anchors with a TopK; exact score ties can
+            # permute the 300 queries between eager and traced execution. The
+            # outputs are a set, so fall back to a bijective row matching and
+            # still require the S4 numeric gate.
+            matched = row_set_parity(logits_o, expected_logits, boxes_o, expected_boxes)
+            assert matched <= 1e-3, (annotation.image_id, logits_diff, boxes_diff, matched)
+
+
+def row_set_parity(
+    logits_onnx: np.ndarray,
+    logits_torch: np.ndarray,
+    boxes_onnx: np.ndarray,
+    boxes_torch: np.ndarray,
+) -> float:
+    """Max row distance under a bijective nearest-row matching.
+
+    Used only when elementwise parity fails because a TopK tie changed the
+    query order; a non-bijective match is rejected with ``inf`` so a real
+    numeric divergence can never pass.
+    """
+    left = np.concatenate([np.asarray(logits_onnx)[0], np.asarray(boxes_onnx)[0]], axis=1)
+    right = np.concatenate([np.asarray(logits_torch)[0], np.asarray(boxes_torch)[0]], axis=1)
+    distances = np.sqrt(((left[:, None, :] - right[None, :, :]) ** 2).sum(axis=2))
+    nearest = distances.argmin(axis=1)
+    if len(set(nearest.tolist())) != len(nearest):
+        return float("inf")
+    return float(distances[np.arange(len(nearest)), nearest].max())

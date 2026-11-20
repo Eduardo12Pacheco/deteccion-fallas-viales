@@ -123,6 +123,10 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 [tool.ruff.lint.isort]
 known-first-party = ["rdv"]
 
+[tool.ruff.lint.per-file-ignores]
+# PyInstaller injects Analysis/PYZ/EXE/COLLECT/SPECPATH into spec files.
+"packaging/*.spec" = ["F821"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"

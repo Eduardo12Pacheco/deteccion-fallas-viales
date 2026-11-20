@@ -11,6 +11,7 @@ from rdv.entrypoints.cli.evaluate import evaluate as evaluate_command
 from rdv.entrypoints.cli.export import export as export_command
 from rdv.entrypoints.cli.models import models_app
 from rdv.entrypoints.cli.samples import samples as samples_command
+from rdv.entrypoints.cli.serve import serve as serve_command
 from rdv.entrypoints.cli.train import train as train_command
 
 app = typer.Typer(
@@ -40,11 +41,6 @@ def main_callback(
     """Detect road damage in images and video."""
 
 
-@app.command()
-def serve() -> None:
-    """Start the local web app."""
-
-
 app.add_typer(data_app, name="data")
 app.add_typer(models_app, name="models")
 app.command()(benchmark_command)
@@ -53,6 +49,7 @@ app.command()(doctor_command)
 app.command()(evaluate_command)
 app.command()(export_command)
 app.command()(samples_command)
+app.command()(serve_command)
 app.command()(train_command)
 
 

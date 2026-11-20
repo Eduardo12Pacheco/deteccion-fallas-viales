@@ -227,3 +227,94 @@ def test_unknown_image_id_is_a_dataset_error(dataset: SyntheticDataset, tmp_path
 
     with pytest.raises(DatasetError):
         repo.load_image("Japan/train/images/not-in-manifest.jpg")
+
+
+def _write_manifest(root: Path, splits: dict[str, list[str]], **overrides: object) -> Path:
+    root.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, object] = {
+        "schema": "rdv.splits/v1",
+        "seed": 42,
+        "block_size": 2,
+        "ratios": [0.8, 0.1, 0.1],
+        "splits": splits,
+    }
+    payload.update(overrides)
+    path = root / "splits.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
+def test_malformed_manifest_json_names_the_path(tmp_path: Path) -> None:
+    root = tmp_path / "rdd2022"
+    root.mkdir()
+    (root / "splits.json").write_text("{not json", encoding="utf-8")
+
+    with pytest.raises(DatasetError) as raised:
+        Rdd2022VocRepository(root, ("Japan",))
+
+    assert str(root / "splits.json") in raised.value.message
+
+
+def test_manifest_wrong_ratios_is_rejected(tmp_path: Path) -> None:
+    root = tmp_path / "rdd2022"
+    _write_manifest(root, {"train": [], "val": [], "test": []}, ratios=[0.8])
+
+    with pytest.raises(DatasetError, match="ratios"):
+        Rdd2022VocRepository(root, ("Japan",))
+
+
+def test_manifest_duplicate_ids_are_rejected(tmp_path: Path) -> None:
+    root = tmp_path / "rdd2022"
+    _write_manifest(
+        root,
+        {
+            "train": ["Japan/train/images/a.jpg"],
+            "val": ["Japan/train/images/a.jpg"],
+            "test": [],
+        },
+    )
+
+    with pytest.raises(DatasetError, match="duplicate"):
+        Rdd2022VocRepository(root, ("Japan",))
+
+
+def test_manifest_non_integer_seed_is_rejected(tmp_path: Path) -> None:
+    root = tmp_path / "rdd2022"
+    _write_manifest(root, {"train": [], "val": [], "test": []}, seed="forty-two")
+
+    with pytest.raises(DatasetError, match="seed"):
+        Rdd2022VocRepository(root, ("Japan",))
+
+
+def test_image_id_without_an_images_directory_is_rejected(tmp_path: Path) -> None:
+    root = tmp_path / "rdd2022"
+    _write_manifest(root, {"train": ["Japan/train/flat.jpg"], "val": [], "test": []})
+
+    with pytest.raises(DatasetError) as raised:
+        Rdd2022VocRepository(root, ("Japan",))
+
+    assert "Japan/train/flat.jpg" in raised.value.message
+
+
+def test_stats_reports_a_missing_image(dataset: SyntheticDataset, tmp_path: Path) -> None:
+    repo = Rdd2022VocRepository(tmp_path / "rdd2022", ("Japan", "India"), split="all")
+    image_id = next(iter(repo)).image_id
+    image_path = tmp_path / "rdd2022" / image_id
+    image_path.unlink()
+
+    with pytest.raises(DatasetError) as raised:
+        repo.stats()
+
+    assert str(image_path) in raised.value.message
+
+
+def test_corrupt_image_raises_a_dataset_error(dataset: SyntheticDataset, tmp_path: Path) -> None:
+    repo = Rdd2022VocRepository(tmp_path / "rdd2022", ("Japan", "India"), split="all")
+    image_id = next(iter(repo)).image_id
+    image_path = tmp_path / "rdd2022" / image_id
+    image_path.write_bytes(b"not an image")
+
+    with pytest.raises(DatasetError) as raised:
+        repo.load_image(image_id)
+
+    assert str(image_path) in raised.value.message

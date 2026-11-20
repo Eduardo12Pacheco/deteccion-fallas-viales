@@ -13,6 +13,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PYTHON_VERSION: "3.12"
+
 jobs:
   lint:
     name: Lint and format
@@ -23,27 +26,22 @@ jobs:
       - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
-          python-version: "3.12"
-      - run: uv sync --locked
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run lint-imports
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install the locked environment
+        run: uv sync --locked
+      - name: Ruff lint
+        run: uv run ruff check .
+      - name: Ruff format check
+        run: uv run ruff format --check .
+      - name: Lockfile is up to date
+        run: uv lock --check
+      - name: Hexagonal import contracts
+        run: uv run lint-imports
+      - name: Biome on the web modules
+        run: npx --yes @biomejs/biome@2.6.8 ci src/rdv/entrypoints/web/static
 
   types:
     name: Type check
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.3.3
-        with:
-          enable-cache: true
-          python-version: "3.12"
-      - run: uv sync --locked --extra train --extra cpu
-      - run: uv run mypy --strict src
-
-  test:
-    name: Test
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -51,6 +49,183 @@ jobs:
       - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
-          python-version: "3.12"
-      - run: uv sync --locked
-      - run: uv run pytest -q
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install the training stack
+        run: uv sync --locked --extra train --extra cpu
+      - name: mypy --strict
+        run: uv run mypy --strict src
+
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install the base environment
+        run: uv sync --locked
+      - name: Torch-free test suite
+        run: >-
+          uv run pytest -q
+          -m "not train and not ui and not parity and not realmodel"
+
+  full:
+    name: Full suite and coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install all runtime extras
+        run: uv sync --locked --extra train --extra cpu
+      - name: Install Chromium for the UI tests
+        run: uv run playwright install --with-deps chromium
+      - name: Entire suite with the coverage gate
+        run: >-
+          uv run pytest -q
+          -m "not realmodel"
+          --cov=src/rdv
+          --cov-report=term-missing
+          --cov-report=html
+          --cov-fail-under=85
+      - name: Upload the coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-html
+          path: htmlcov/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  build:
+    name: Build and inspect the wheel
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Build the wheel and the source distribution
+        run: uv build
+      - name: Validate the distribution metadata
+        run: uvx twine check dist/*
+      - name: Assert the wheel contents
+        run: |
+          uv run python - <<'PY'
+          import glob
+          import zipfile
+
+          wheel = glob.glob("dist/*.whl")[0]
+          names = zipfile.ZipFile(wheel).namelist()
+          assert any(name.endswith("assets/models.json") for name in names), names
+          assert any("/assets/samples/" in name and name.endswith(".jpg") for name in names), names
+          assert any(name.endswith("static/index.html") for name in names), names
+          assert any(name.endswith("static/js/main.js") for name in names), names
+          assert not any(name.endswith(".onnx") for name in names), names
+          assert not any(name.startswith("tests/") for name in names), names
+          print(f"OK: {wheel} ({len(names)} entries)")
+          PY
+      - name: Stage the installer smoke assets
+        run: |
+          mkdir -p smoke-assets
+          cp tests/fixtures/models/tiny-detector.onnx smoke-assets/
+          cp tests/fixtures/rdd2022-mini/Japan/train/images/Japan_002986.jpg smoke-assets/sample.jpg
+      - name: Upload the wheel
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload the smoke assets
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-assets
+          path: smoke-assets/
+          if-no-files-found: error
+          retention-days: 7
+
+  installer-smoke:
+    name: Installer smoke (${{ matrix.os }})
+    needs: build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+      - uses: actions/download-artifact@v8
+        with:
+          name: smoke-assets
+          path: smoke-assets
+      - name: Install the wheel with uv tool
+        shell: bash
+        run: |
+          uv tool install --force dist/*.whl
+          uv tool dir --bin >> "$GITHUB_PATH"
+          "$(uv tool dir --bin)/rdv" --version
+      - name: Print the doctor report
+        shell: bash
+        run: rdv doctor --json > doctor.json
+      - name: Detect damage in the packaged sample
+        shell: bash
+        run: |
+          rdv detect smoke-assets/sample.jpg \
+            --model smoke-assets/tiny-detector.onnx \
+            --out smoke-out
+          test -f smoke-out/sample.annotated.png
+          test -f smoke-out/sample.detections.json
+          test -f smoke-out/summary.json
+      - name: Serve the web app and probe the health endpoint
+        shell: bash
+        run: |
+          rdv serve --no-browser --port 16399 --model smoke-assets/tiny-detector.onnx &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for _ in $(seq 1 40); do
+            if curl -fsS "http://127.0.0.1:16399/api/health" -o health.json; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" = "1"
+          cat health.json
+          grep -q '"status":"ok"' health.json
+
+  docs:
+    name: Documentation links
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install the base environment
+        run: uv sync --locked
+      - name: Check README and docs links
+        run: uv run pytest tests/unit/test_docs_links.py -q

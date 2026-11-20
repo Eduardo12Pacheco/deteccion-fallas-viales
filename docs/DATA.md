@@ -34,7 +34,7 @@ so a Zip64 extra field cannot silently shift the range.
 | Japan | `RDD2022/Japan.zip` | 1,136,050,224 | 1,072,598,857 | `e133e2cc` | `76efe7acb4642da283891611670dac7e8866a1b1dd145b8a1540fd440b1328f7` |
 | India | `RDD2022/India.zip` | 609,341,032 | 526,709,145 | `f186f6f8` | `28eab0aa85638855e1907e63b175be2305a0accd018c54603037d3fb8cab963a` |
 | Czech | `RDD2022/Czech.zip` | 352,223,767 | 257,117,218 | `abcf66aa` | `94c65a4e6cfed187b193ba967f0a2b16bd4287dfe313d0962f3711afce75bf1d` |
-| Norway (OOD sample only) | `RDD2022/Norway.zip` | 2,208,649,128 | 10,611,186,814 | `01bedb71` | recorded on first download |
+| Norway (OOD sample only) | `RDD2022/Norway.zip` | 2,208,649,128 | 10,611,186,814 | `01bedb71` | not downloaded (sampled through nested ranges) |
 | United_States (excluded) | `RDD2022/United_States.zip` | 12,819,836,010 | 444,335,958 | `fb8ded4b` | not downloaded |
 | China_Drone (excluded) | `RDD2022/China_Drone.zip` | 0 | 160,193,541 | `28b57b73` | not downloaded |
 | China_MotorBike (excluded) | `RDD2022/China_MotorBike.zip` | 160,193,594 | 192,030,116 | `f887e542` | not downloaded |

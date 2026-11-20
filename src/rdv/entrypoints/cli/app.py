@@ -3,6 +3,7 @@
 import typer
 
 from rdv import __version__
+from rdv.entrypoints.cli.benchmark import benchmark as benchmark_command
 from rdv.entrypoints.cli.data import data_app
 from rdv.entrypoints.cli.detect import detect as detect_command
 from rdv.entrypoints.cli.doctor import doctor as doctor_command
@@ -58,14 +59,10 @@ def serve() -> None:
 
 app.add_typer(data_app, name="data")
 app.add_typer(models_app, name="models")
+app.command()(benchmark_command)
 app.command()(detect_command)
 app.command()(doctor_command)
 app.command()(samples_command)
-
-
-@app.command()
-def benchmark() -> None:
-    """Measure inference latency and throughput."""
 
 
 def main() -> None:

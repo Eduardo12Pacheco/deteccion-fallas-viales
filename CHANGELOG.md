@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Documentation
+
+- **readme:** Add the English and Spanish project pages with generated metrics, architecture diagram and demo media
+- **adr:** Record the detector choice (0001) and index decisions 0001-0011
+- **architecture:** Document layers, ports, patterns and the optional heavy-dependency split
+- **contributing/security:** Finalize the development, testing and vulnerability-reporting guides
+
 ## [0.1.0] - 2026-11-20
 
 ### Bug Fixes

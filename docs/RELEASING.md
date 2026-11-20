@@ -7,8 +7,8 @@ This project ships two independent release channels (decision D22):
 | Model weights | `models-v1` | `rdv-rtdetrv2-r18-rdd2022-v1.onnx` | Pinned ONNX file downloaded by `rdv models pull` and embedded in desktop bundles |
 | Application | `v0.1.0` | wheel, sdist, three desktop bundles, `SHA256SUMS`, provenance attestations | CLI (L1) and portable desktop app (L3) |
 
-The weights release is created **once** by the repository owner and is never
-rebuilt by the tag workflow. The tag workflow downloads it with
+The weights release is created **once** (the v1 asset was published in T10)
+and is never rebuilt by the tag workflow. The tag workflow downloads it with
 `gh release download`, verifies its sha256 against
 `src/rdv/assets/models.json`, embeds it in every bundle and re-uses the same
 digest in the post-release smoke. If the two digests disagree, the workflow
@@ -17,7 +17,8 @@ stops before publishing anything.
 ## Before the first release
 
 1. Confirm that the remote is reachable and CI is green on `main`.
-2. Publish the weights release (owner action, exactly once):
+2. Confirm the weights release exists. It is published once per model version;
+   re-run the script only if `models-v1` is missing or the asset is corrupt:
 
    ```bash
    bash scripts/publish_model.sh
@@ -32,6 +33,10 @@ stops before publishing anything.
    ```
 
 ## Release order
+
+The first `v0.1.0` tag is created only after the first fully green CI run on
+`main` and the `models-v1` asset both exist; the workflow cannot start on a
+runner whose account cannot run Actions.
 
 1. **Bump the version** in `pyproject.toml` (and refresh `uv.lock` only if a
    dependency changed).

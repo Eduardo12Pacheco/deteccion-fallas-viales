@@ -55,7 +55,8 @@ class ModelManifest:
             available = ", ".join(sorted(self._by_id)) or "none"
             raise ModelError(
                 f"Model {model_id!r} is not in the manifest (available: {available}). "
-                "Pass --model PATH to use a local ONNX file."
+                "Run `rdv models pull` to download a published model, or pass "
+                "--model PATH to use a local ONNX file."
             ) from exc
 
     def find(self, model_id: str) -> ModelEntry | None:

@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Eduardo12Pacheco/road-damage-vision/blob/main/docs/schemas/detections.v1.schema.json",
+  "title": "rdv.detections/v1",
+  "description": "Per-source detection document written by rdv detect (image and, from T7, video).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "tool", "model", "source", "params", "frames", "summary"],
+  "properties": {
+    "schema": {"const": "rdv.detections/v1"},
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {"const": "road-damage-vision"},
+        "version": {"type": "string", "minLength": 1}
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sha256", "input_size"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "input_size": {"type": "integer", "minimum": 1}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "width", "height"],
+      "properties": {
+        "path": {"type": "string"},
+        "kind": {"enum": ["image", "video"]},
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1},
+        "fps": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "frames": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score_threshold", "device"],
+      "properties": {
+        "score_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+        "device": {"enum": ["cpu", "cuda"]},
+        "analysis_fps": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "max_frames": {"type": ["integer", "null"], "minimum": 1}
+      }
+    },
+    "frames": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["index", "detections"],
+        "properties": {
+          "index": {"type": "integer", "minimum": 0},
+          "t": {"type": ["number", "null"], "minimum": 0},
+          "detections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["class", "name", "score", "box", "track_id"],
+              "properties": {
+                "class": {"enum": ["D00", "D10", "D20", "D40"]},
+                "name": {"type": "string", "minLength": 1},
+                "score": {"type": "number", "minimum": 0, "maximum": 1},
+                "box": {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {"type": "number"}
+                },
+                "track_id": {"type": ["integer", "null"], "minimum": 0}
+              }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "counts",
+        "unique_instances",
+        "frames_analyzed",
+        "frames_with_damage",
+        "coverage_ratio",
+        "max_score"
+      ],
+      "properties": {
+        "counts": {"$ref": "#/$defs/classCounts"},
+        "unique_instances": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["D00", "D10", "D20", "D40"],
+              "properties": {
+                "D00": {"type": "integer", "minimum": 0},
+                "D10": {"type": "integer", "minimum": 0},
+                "D20": {"type": "integer", "minimum": 0},
+                "D40": {"type": "integer", "minimum": 0}
+              }
+            }
+          ]
+        },
+        "frames_analyzed": {"type": "integer", "minimum": 1},
+        "frames_with_damage": {"type": "integer", "minimum": 0},
+        "coverage_ratio": {"type": "number", "minimum": 0, "maximum": 1},
+        "max_score": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    }
+  },
+  "$defs": {
+    "classCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["D00", "D10", "D20", "D40"],
+      "properties": {
+        "D00": {"type": "integer", "minimum": 0},
+        "D10": {"type": "integer", "minimum": 0},
+        "D20": {"type": "integer", "minimum": 0},
+        "D40": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

@@ -60,7 +60,7 @@ def test_valid_entry_is_parsed(tmp_path: Path) -> None:
 def test_unknown_id_lists_available_models_and_the_local_path_hint() -> None:
     manifest = ModelManifest.from_dict(_payload(_entry()))
 
-    with pytest.raises(ModelError, match="Pass --model PATH") as excinfo:
+    with pytest.raises(ModelError, match="model PATH") as excinfo:
         manifest.get("nope")
 
     assert excinfo.value.exit_code == 4

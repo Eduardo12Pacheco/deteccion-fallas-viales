@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 import numpy as np
 from numpy.typing import NDArray
@@ -201,6 +201,46 @@ class ModelStore(Protocol):
 
     def verify(self, path: Path, model_id: str | None = None) -> ModelEntry:
         """Check a file against its manifest entry and return that entry."""
+        ...
+
+
+class MediaSource(Protocol):
+    """Decode input files into RGB arrays and encode rendered PNGs."""
+
+    def load_image(self, path: Path) -> RgbImage:
+        """Decode one image, applying EXIF orientation."""
+        ...
+
+    def save_png(self, path: Path, image: RgbImage) -> None:
+        """Write an RGB array as a PNG file."""
+        ...
+
+
+class Renderer(Protocol):
+    """Draw detections over an input image without mutating it."""
+
+    def render(self, image: RgbImage, detections: Sequence[Detection]) -> RgbImage:
+        """Return a new RGB array with boxes and score labels."""
+        ...
+
+
+class DetectionsWriter(Protocol):
+    """Persist one ``rdv.detections/v1`` document."""
+
+    def write_detections(self, path: Path, document: Mapping[str, Any]) -> None:
+        """Serialize ``document`` deterministically to ``path``."""
+        ...
+
+
+class SummaryWriter(Protocol):
+    """Persist the aggregate run summary in JSON and Markdown."""
+
+    def write_summary_json(self, path: Path, document: Mapping[str, Any]) -> None:
+        """Serialize the aggregate summary as stable JSON."""
+        ...
+
+    def write_summary_markdown(self, path: Path, document: Mapping[str, Any]) -> None:
+        """Render a human-readable Markdown summary."""
         ...
 
 

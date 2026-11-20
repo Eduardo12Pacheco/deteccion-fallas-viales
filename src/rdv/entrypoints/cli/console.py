@@ -11,6 +11,7 @@ from collections.abc import Callable
 
 import typer
 
+from rdv.application.events import ProgressEvent
 from rdv.config.logging import configure_logging
 from rdv.config.settings import Settings
 from rdv.errors import RdvError
@@ -33,3 +34,15 @@ def run(action: Callable[[], None]) -> None:
 def format_mib(value: int) -> str:
     """Format a byte count as whole MiB for progress output."""
     return f"{value / (1024 * 1024):.0f} MiB"
+
+
+class ConsoleProgressSink:
+    """ProgressSink that prints one line per event (CLI Observer)."""
+
+    def emit(self, event: ProgressEvent) -> None:
+        """Print the event in a compact human-readable form."""
+        counter = (
+            f"{event.current}/{event.total}" if event.total is not None else str(event.current)
+        )
+        suffix = f" {event.message}" if event.message else ""
+        typer.echo(f"{event.stage}: {counter}{suffix}")

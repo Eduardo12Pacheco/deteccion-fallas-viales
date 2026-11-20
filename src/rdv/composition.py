@@ -20,8 +20,12 @@ from rdv.adapters.datasets.remote_zip import (
 )
 from rdv.adapters.inference.onnx_detector import OnnxDetector
 from rdv.adapters.inference.preprocess import INPUT_SIZE
+from rdv.adapters.media.images import PillowImageSource
+from rdv.adapters.media.renderer import PillowRenderer
 from rdv.adapters.models.manifest import ModelManifest, default_manifest_path
 from rdv.adapters.models.store import CachedModelStore
+from rdv.adapters.reporting.detections_json import DetectionsJsonWriter
+from rdv.adapters.reporting.summary_md import SummaryWriter
 from rdv.application.ports import DEFAULT_SCORE_THRESHOLD
 from rdv.config.settings import Settings
 
@@ -96,3 +100,23 @@ def build_detector(
         model_version=entry.version if entry is not None else None,
         model_license=entry.license if entry is not None else None,
     )
+
+
+def build_media_source() -> PillowImageSource:
+    """Still-image decoder and PNG encoder (decision D8)."""
+    return PillowImageSource()
+
+
+def build_renderer() -> PillowRenderer:
+    """Overlay renderer using the Okabe-Ito palette (decision D11)."""
+    return PillowRenderer()
+
+
+def build_detections_writer() -> DetectionsJsonWriter:
+    """Deterministic ``rdv.detections/v1`` writer."""
+    return DetectionsJsonWriter()
+
+
+def build_summary_writer() -> SummaryWriter:
+    """Aggregate summary writer (JSON and Markdown from one view-model)."""
+    return SummaryWriter()

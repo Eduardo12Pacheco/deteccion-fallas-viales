@@ -7,8 +7,9 @@ dataset repository and the progress observer.
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 import numpy as np
@@ -129,6 +130,77 @@ class Detector(Protocol):
     @property
     def info(self) -> ModelInfo:
         """Identity, threshold and device of the loaded model."""
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class ModelEntry:
+    """One model published in the packaged manifest (decision D13).
+
+    Attributes:
+        id: stable identifier used by ``rdv models pull`` and ``RDV_MODEL``.
+        version: artifact version (``v1`` for the first fine-tune).
+        url: pinned download URL of the single-file ONNX artifact.
+        sha256: lowercase hex digest the downloaded file must match.
+        size: exact byte size of the artifact.
+        input_size: square network input side expected by the graph.
+        score_threshold: recommended detection threshold for this model.
+        classes: class codes in model-id order (always D4's four classes).
+        license: license identifier of the weights (``Apache-2.0``).
+        metrics_ref: relative path of the committed metrics, if any.
+    """
+
+    id: str
+    version: str
+    url: str
+    sha256: str
+    size: int
+    input_size: int
+    score_threshold: float
+    classes: tuple[str, ...] = DEFAULT_CLASS_CODES
+    license: str = "Apache-2.0"
+    metrics_ref: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.id.strip():
+            raise ValueError("ModelEntry id must not be empty")
+        if not self.url.startswith(("https://", "http://")):
+            raise ValueError(f"ModelEntry url must be HTTP(S), got {self.url!r}")
+        if len(self.sha256) != 64:
+            raise ValueError(f"ModelEntry sha256 must be 64 hex characters, got {self.sha256!r}")
+        int(self.sha256, 16)
+        if self.size <= 0:
+            raise ValueError("ModelEntry size must be positive")
+        if self.input_size <= 0:
+            raise ValueError("ModelEntry input_size must be positive")
+        if not 0.0 <= self.score_threshold <= 1.0:
+            raise ValueError("ModelEntry score_threshold must be within [0, 1]")
+        if tuple(self.classes) != DEFAULT_CLASS_CODES:
+            raise ValueError(f"ModelEntry classes must be {DEFAULT_CLASS_CODES!r}")
+        object.__setattr__(self, "classes", tuple(self.classes))
+
+
+class ModelStore(Protocol):
+    """Resolve, download, and verify model artifacts (decision D13)."""
+
+    def entries(self) -> tuple[ModelEntry, ...]:
+        """Models published in the manifest, in file order."""
+        ...
+
+    def resolve(self, model: str) -> Path:
+        """Return a local path for a manifest id or an explicit ``.onnx`` path."""
+        ...
+
+    def pull(
+        self,
+        model_id: str,
+        progress: Callable[[int, int], None] | None = None,
+    ) -> Path:
+        """Download, verify and atomically install a manifest model."""
+        ...
+
+    def verify(self, path: Path, model_id: str | None = None) -> ModelEntry:
+        """Check a file against its manifest entry and return that entry."""
         ...
 
 

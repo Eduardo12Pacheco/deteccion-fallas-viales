@@ -10,12 +10,20 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
+import httpx
+
 from rdv.adapters.datasets.rdd2022 import DatasetTreeScan, scan_dataset_tree
 from rdv.adapters.datasets.remote_zip import (
     DEFAULT_BLOCK_SIZE,
     DatasetLock,
     RemoteZipArchive,
 )
+from rdv.adapters.inference.onnx_detector import OnnxDetector
+from rdv.adapters.inference.preprocess import INPUT_SIZE
+from rdv.adapters.models.manifest import ModelManifest, default_manifest_path
+from rdv.adapters.models.store import CachedModelStore
+from rdv.application.ports import DEFAULT_SCORE_THRESHOLD
+from rdv.config.settings import Settings
 
 
 def load_dataset_lock(path: Path) -> DatasetLock:
@@ -36,3 +44,55 @@ def open_dataset_archive(
 def scan_dataset(root: Path, countries: Sequence[str] | None = None) -> DatasetTreeScan:
     """Count a downloaded dataset tree with the VOC adapter."""
     return scan_dataset_tree(root, countries)
+
+
+def model_manifest_path() -> Path:
+    """Default location of the packaged model manifest (decision D13)."""
+    return default_manifest_path()
+
+
+def load_model_manifest(path: Path | None = None) -> ModelManifest:
+    """Read the packaged or explicitly provided model manifest."""
+    return ModelManifest.load(path)
+
+
+def build_model_store(
+    settings: Settings,
+    *,
+    manifest: ModelManifest | None = None,
+    client: httpx.Client | None = None,
+) -> CachedModelStore:
+    """Build the cached model store from settings and the manifest."""
+    resolved = manifest if manifest is not None else load_model_manifest()
+    return CachedModelStore(
+        resolved,
+        settings.model_dir,
+        offline=settings.offline,
+        client=client,
+    )
+
+
+def build_detector(
+    settings: Settings,
+    *,
+    model: str | None = None,
+    score_threshold: float | None = None,
+    manifest: ModelManifest | None = None,
+) -> OnnxDetector:
+    """Build the default ONNX detector for a manifest id or local file (D8)."""
+    store = build_model_store(settings, manifest=manifest)
+    selected = model or settings.model
+    path = store.resolve(selected)
+    entry = store.entry(selected)
+    threshold = score_threshold if score_threshold is not None else settings.score_threshold
+    if threshold is None:
+        threshold = entry.score_threshold if entry is not None else DEFAULT_SCORE_THRESHOLD
+    return OnnxDetector(
+        path,
+        score_threshold=threshold,
+        device=settings.device,
+        input_size=entry.input_size if entry is not None else INPUT_SIZE,
+        model_id=entry.id if entry is not None else path.stem,
+        model_version=entry.version if entry is not None else None,
+        model_license=entry.license if entry is not None else None,
+    )

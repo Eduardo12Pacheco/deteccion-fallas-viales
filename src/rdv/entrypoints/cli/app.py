@@ -4,6 +4,7 @@ import typer
 
 from rdv import __version__
 from rdv.entrypoints.cli.data import data_app
+from rdv.entrypoints.cli.models import models_app
 
 app = typer.Typer(
     name="rdv",
@@ -57,12 +58,8 @@ def serve() -> None:
     """Start the local web app."""
 
 
-@app.command()
-def models() -> None:
-    """List, pull, and verify model files."""
-
-
 app.add_typer(data_app, name="data")
+app.add_typer(models_app, name="models")
 
 
 @app.command()

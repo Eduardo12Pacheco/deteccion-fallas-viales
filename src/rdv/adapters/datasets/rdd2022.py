@@ -272,3 +272,103 @@ class Rdd2022VocRepository:
             dropped_labels=dict(dropped),
         )
         return self._stats
+
+
+@dataclass(frozen=True, slots=True)
+class CountryScan:
+    """Per-country image/label counts produced by :func:`scan_dataset_tree`."""
+
+    country: str
+    images: Mapping[str, int]
+    labels: int
+    classes: Mapping[str, int]
+    dropped_labels: Mapping[str, int]
+
+    def as_dict(self) -> dict[str, object]:
+        """Return a JSON-ready representation."""
+        return {
+            "country": self.country,
+            "images": dict(self.images),
+            "labels": self.labels,
+            "classes": dict(self.classes),
+            "dropped_labels": dict(self.dropped_labels),
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class DatasetTreeScan:
+    """Aggregate counts of a downloaded ``rdd2022`` tree."""
+
+    countries: Mapping[str, CountryScan]
+
+    def as_dict(self) -> dict[str, object]:
+        """Return a JSON-ready representation for ``rdv data stats --json``."""
+        return {
+            "schema": "rdv.dataset-stats/v1",
+            "countries": {name: scan.as_dict() for name, scan in self.countries.items()},
+            "totals": {
+                "images": sum(sum(scan.images.values()) for scan in self.countries.values()),
+                "labels": sum(scan.labels for scan in self.countries.values()),
+            },
+        }
+
+
+def scan_dataset_tree(
+    root: Path,
+    countries: Sequence[str] | None = None,
+) -> DatasetTreeScan:
+    """Count downloaded images, labels and dropped labels per country.
+
+    Args:
+        root: ``<data_dir>/rdd2022``.
+        countries: folders to scan; ``None`` discovers every child folder that
+            contains ``train/images``.
+
+    Raises:
+        DatasetError: the root, a requested country, or an annotation file is
+            missing, or an XML file is malformed.
+    """
+    root = Path(root)
+    if not root.is_dir():
+        raise DatasetError(f"Dataset root not found: {root}")
+    if countries is None:
+        names = sorted(
+            child.name
+            for child in root.iterdir()
+            if child.is_dir() and (child / "train" / "images").is_dir()
+        )
+    else:
+        names = list(countries)
+    if not names:
+        raise DatasetError(f"No downloaded countries found under {root}")
+
+    scans: dict[str, CountryScan] = {}
+    for country in names:
+        country_root = root / country
+        if not (country_root / "train" / "images").is_dir():
+            raise DatasetError(f"Missing downloaded image folder for {country}: {country_root}")
+        images: Counter[str] = Counter()
+        classes: Counter[str] = Counter()
+        dropped: Counter[str] = Counter()
+        for split_dir in sorted(path for path in country_root.iterdir() if path.is_dir()):
+            images_dir = split_dir / "images"
+            if not images_dir.is_dir():
+                continue
+            for image_path in sorted(images_dir.glob("*.jpg")):
+                annotation_path = split_dir / "annotations" / "xmls" / f"{image_path.stem}.xml"
+                if not annotation_path.is_file():
+                    raise DatasetError(
+                        f"Missing annotation for {image_path}: expected {annotation_path}"
+                    )
+                parsed = parse_voc_file(annotation_path)
+                images[split_dir.name] += 1
+                classes.update(annotation.damage_class.code for annotation in parsed.annotations)
+                dropped.update(parsed.dropped_labels)
+        scans[country] = CountryScan(
+            country=country,
+            images=dict(images),
+            labels=sum(classes.values()),
+            classes=dict(classes),
+            dropped_labels=dict(dropped),
+        )
+    return DatasetTreeScan(countries=scans)

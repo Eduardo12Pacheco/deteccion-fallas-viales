@@ -38,6 +38,7 @@ def test_help_lists_exactly_the_documented_commands() -> None:
         for command in app.registered_commands
         if command.callback is not None
     }
+    registered |= {group.name for group in app.registered_groups if group.name}
     assert registered == EXPECTED_COMMANDS
     # The rendered help can be a Rich table or plain text depending on the
     # terminal, so assert on the names instead of the table layout.

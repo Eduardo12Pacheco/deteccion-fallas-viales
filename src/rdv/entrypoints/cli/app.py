@@ -3,6 +3,7 @@
 import typer
 
 from rdv import __version__
+from rdv.entrypoints.cli.data import data_app
 
 app = typer.Typer(
     name="rdv",
@@ -61,9 +62,7 @@ def models() -> None:
     """List, pull, and verify model files."""
 
 
-@app.command()
-def data() -> None:
-    """Download, prepare, and inspect datasets."""
+app.add_typer(data_app, name="data")
 
 
 @app.command()

@@ -1,0 +1,60 @@
+{
+  "schema": "rdv.dataset-lock/v1",
+  "dataset": "RDD2022",
+  "url": "https://ndownloader.figshare.com/files/38030910",
+  "outer": {
+    "size": 13264172619,
+    "md5": "b62bd51d2ffcfaa76c60f234f0cc2bb3"
+  },
+  "countries": {
+    "China_Drone": {
+      "member": "RDD2022/China_Drone.zip",
+      "header_offset": 0,
+      "size": 160193541,
+      "crc32": "28b57b73",
+      "sha256": null
+    },
+    "China_MotorBike": {
+      "member": "RDD2022/China_MotorBike.zip",
+      "header_offset": 160193594,
+      "size": 192030116,
+      "crc32": "f887e542",
+      "sha256": null
+    },
+    "Czech": {
+      "member": "RDD2022/Czech.zip",
+      "header_offset": 352223767,
+      "size": 257117218,
+      "crc32": "abcf66aa",
+      "sha256": null
+    },
+    "India": {
+      "member": "RDD2022/India.zip",
+      "header_offset": 609341032,
+      "size": 526709145,
+      "crc32": "f186f6f8",
+      "sha256": null
+    },
+    "Japan": {
+      "member": "RDD2022/Japan.zip",
+      "header_offset": 1136050224,
+      "size": 1072598857,
+      "crc32": "e133e2cc",
+      "sha256": null
+    },
+    "Norway": {
+      "member": "RDD2022/Norway.zip",
+      "header_offset": 2208649128,
+      "size": 10611186814,
+      "crc32": "01bedb71",
+      "sha256": null
+    },
+    "United_States": {
+      "member": "RDD2022/United_States.zip",
+      "header_offset": 12819836010,
+      "size": 444335958,
+      "crc32": "fb8ded4b",
+      "sha256": null
+    }
+  }
+}

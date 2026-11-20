@@ -1,0 +1,10 @@
+{
+  "schema": "rdv.splits-lock/v1",
+  "sha256": "dbc3eaed76cf2c85e7b3203ebd9248e66daa0caf5fe0b5c7319d76df917e0b2f",
+  "seed": 42,
+  "counts": {
+    "train": 16741,
+    "val": 2200,
+    "test": 2100
+  }
+}

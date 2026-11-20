@@ -71,3 +71,45 @@ def test_gpu_factory_returns_none_for_a_non_checkpoint_model(monkeypatch, tmp_pa
     settings = Settings(model="not-a-published-model", model_dir=tmp_path / "models")
 
     assert composition.build_benchmark_gpu_detector(settings) is None
+
+
+def test_local_model_path_uses_the_published_manifest_entry(monkeypatch, tmp_path: Path) -> None:
+    import hashlib
+
+    from rdv.adapters.models.manifest import ModelManifest
+
+    model = tmp_path / "local.onnx"
+    model.write_bytes(b"published artifact bytes")
+    digest = hashlib.sha256(model.read_bytes()).hexdigest()
+    manifest = ModelManifest.from_dict(
+        {
+            "schema": "rdv.models/v1",
+            "models": [
+                {
+                    "id": "demo",
+                    "version": "v1",
+                    "url": "https://example.invalid/demo.onnx",
+                    "sha256": digest,
+                    "size": model.stat().st_size,
+                    "input_size": 640,
+                    "recommended_score_threshold": 0.01,
+                    "classes": ["D00", "D10", "D20", "D40"],
+                    "license": "Apache-2.0",
+                }
+            ],
+        }
+    )
+    captured: dict[str, object] = {}
+
+    class FakeDetector:
+        def __init__(self, path: Path, **kwargs: object) -> None:
+            captured["path"] = path
+            captured.update(kwargs)
+
+    monkeypatch.setattr(composition, "OnnxDetector", FakeDetector)
+    settings = Settings(model_dir=tmp_path / "models")
+
+    composition.build_detector(settings, model=str(model), manifest=manifest)
+
+    assert captured["model_id"] == "demo"
+    assert captured["score_threshold"] == 0.01

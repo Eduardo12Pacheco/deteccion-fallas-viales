@@ -45,6 +45,7 @@ from rdv.application.ports import (
 )
 from rdv.config.settings import Settings
 from rdv.errors import DatasetError, MissingExtraError, ModelError
+from rdv.hashing import sha256_file
 
 
 def load_dataset_lock(path: Path) -> DatasetLock:
@@ -105,6 +106,14 @@ def build_detector(
     selected = model or settings.model
     path = store.resolve(selected)
     entry = store.entry(selected)
+    if entry is None:
+        # A local path can still be the published artifact; match its digest so
+        # the manifest's recommended threshold and metadata apply to it too.
+        digest = sha256_file(path)
+        entry = next(
+            (candidate for candidate in store.entries() if candidate.sha256 == digest),
+            None,
+        )
     threshold = score_threshold if score_threshold is not None else settings.score_threshold
     if threshold is None:
         threshold = entry.score_threshold if entry is not None else DEFAULT_SCORE_THRESHOLD

@@ -17,7 +17,7 @@ from rdv.entrypoints.cli.console import configure, run
 from rdv.errors import ConfigError
 
 DEFAULT_OUTPUT = Path("reports/v1")
-_SPLITS = ("train", "val", "test", "all")
+_SPLITS = ("val", "test", "all")
 
 
 def _parse_operating_threshold(value: str) -> float | None:
@@ -45,7 +45,7 @@ def evaluate(
     ] = None,
     split: Annotated[
         str,
-        typer.Option("--split", help="Split to evaluate: train, val, test or all."),
+        typer.Option("--split", help="Split to evaluate: val, test or all."),
     ] = "test",
     model: Annotated[
         str | None,

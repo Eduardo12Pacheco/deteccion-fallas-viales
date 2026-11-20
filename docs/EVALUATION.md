@@ -21,7 +21,7 @@ Options:
 |--------|---------|
 | `--data DIR` | Dataset root containing `<Country>/train/{images,annotations/xmls}`. |
 | `--splits FILE` | Split manifest; defaults to `<data>/splits.json`. |
-| `--split {train,val,test,all}` | Labeled split to evaluate. |
+| `--split {val,test,all}` | Labeled split to evaluate (the CLI contract in S7). |
 | `--model ID\|PATH` | Manifest model id or a local single-file ONNX model. |
 | `--out DIR` | Output directory (default `reports/v1`). |
 | `--op-threshold auto\|F` | `auto` selects the F1 optimum on `val`; a number is used as-is. |

@@ -1,0 +1,34 @@
+{
+  "schema": "rdv.splits/v1",
+  "seed": 42,
+  "block_size": 4,
+  "ratios": [
+    0.5,
+    0.25,
+    0.25
+  ],
+  "splits": {
+    "train": [
+      "Czech/train/images/Czech_003405.jpg",
+      "India/train/images/India_001080.jpg",
+      "India/train/images/India_003079.jpg",
+      "India/train/images/India_005561.jpg",
+      "India/train/images/India_005672.jpg",
+      "India/train/images/India_008307.jpg",
+      "India/train/images/India_008857.jpg",
+      "Japan/train/images/Japan_002986.jpg"
+    ],
+    "val": [
+      "Japan/train/images/Japan_004818.jpg",
+      "Japan/train/images/Japan_005188.jpg",
+      "Japan/train/images/Japan_007811.jpg",
+      "Japan/train/images/Japan_010043.jpg"
+    ],
+    "test": [
+      "Czech/train/images/Czech_000108.jpg",
+      "Czech/train/images/Czech_000254.jpg",
+      "Czech/train/images/Czech_000898.jpg",
+      "Czech/train/images/Czech_001197.jpg"
+    ]
+  }
+}

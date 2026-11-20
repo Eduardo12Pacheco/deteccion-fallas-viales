@@ -1,0 +1,11 @@
+The images and annotations in this directory are a derivative of the RDD2022
+dataset (CRDDC'2022), published on Figshare under CC BY 4.0:
+https://doi.org/10.6084/m9.figshare.21431547.v1
+
+Some re-publications of the same dataset state CC BY-SA 4.0 (the license of the
+accompanying paper). To satisfy both readings, these derivative images are
+distributed under CC BY-SA 4.0:
+https://creativecommons.org/licenses/by-sa/4.0/
+
+The MIT license of this repository applies to the code only, not to these
+images or annotations.

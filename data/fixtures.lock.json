@@ -1,0 +1,132 @@
+{
+  "schema": "rdv.fixtures-lock/v1",
+  "seed": 42,
+  "source": "RDD2022 (Figshare DOI 10.6084/m9.figshare.21431547.v1)",
+  "selection": [
+    {
+      "fixture": "Japan/train/images/Japan_004818.jpg",
+      "source": "Japan/train/images/Japan_004818.jpg",
+      "country": "Japan"
+    },
+    {
+      "fixture": "India/train/images/India_008857.jpg",
+      "source": "India/train/images/India_008857.jpg",
+      "country": "India"
+    },
+    {
+      "fixture": "Czech/train/images/Czech_001197.jpg",
+      "source": "Czech/train/images/Czech_001197.jpg",
+      "country": "Czech"
+    },
+    {
+      "fixture": "India/train/images/India_008307.jpg",
+      "source": "India/train/images/India_008307.jpg",
+      "country": "India"
+    },
+    {
+      "fixture": "Czech/train/images/Czech_000254.jpg",
+      "source": "Czech/train/images/Czech_000254.jpg",
+      "country": "Czech"
+    },
+    {
+      "fixture": "Japan/train/images/Japan_002986.jpg",
+      "source": "Japan/train/images/Japan_002986.jpg",
+      "country": "Japan"
+    },
+    {
+      "fixture": "Czech/train/images/Czech_003405.jpg",
+      "source": "Czech/train/images/Czech_003405.jpg",
+      "country": "Czech"
+    },
+    {
+      "fixture": "Japan/train/images/Japan_007811.jpg",
+      "source": "Japan/train/images/Japan_007811.jpg",
+      "country": "Japan"
+    },
+    {
+      "fixture": "India/train/images/India_005672.jpg",
+      "source": "India/train/images/India_005672.jpg",
+      "country": "India"
+    },
+    {
+      "fixture": "Japan/train/images/Japan_005188.jpg",
+      "source": "Japan/train/images/Japan_005188.jpg",
+      "country": "Japan"
+    },
+    {
+      "fixture": "India/train/images/India_003079.jpg",
+      "source": "India/train/images/India_003079.jpg",
+      "country": "India"
+    },
+    {
+      "fixture": "Czech/train/images/Czech_000108.jpg",
+      "source": "Czech/train/images/Czech_000108.jpg",
+      "country": "Czech"
+    },
+    {
+      "fixture": "Czech/train/images/Czech_000898.jpg",
+      "source": "Czech/train/images/Czech_000898.jpg",
+      "country": "Czech"
+    },
+    {
+      "fixture": "Japan/train/images/Japan_010043.jpg",
+      "source": "Japan/train/images/Japan_010043.jpg",
+      "country": "Japan"
+    },
+    {
+      "fixture": "India/train/images/India_001080.jpg",
+      "source": "India/train/images/India_001080.jpg",
+      "country": "India"
+    },
+    {
+      "fixture": "India/train/images/India_005561.jpg",
+      "source": "India/train/images/India_005561.jpg",
+      "country": "India"
+    }
+  ],
+  "files": {
+    "src/rdv/assets/samples/ATTRIBUTION.md": "d72de27f7486e4843c80a15243e3fdf43d1c37fc4b45cc7ec4b14e954c8381b6",
+    "src/rdv/assets/samples/D00-1.jpg": "272f410bc16a1a1561d350f2e975f67f22cd972a9ce19a9dea36b0a936419c6f",
+    "src/rdv/assets/samples/D00-2.jpg": "704aec81e905065319b9504a12867f167a20f4c2001db628c35d492cf77d0e6c",
+    "src/rdv/assets/samples/D10-1.jpg": "856ad8863de52296d6a5511c8cf24a13c7fd629006e8ceff0242a35220120edb",
+    "src/rdv/assets/samples/D20-1.jpg": "b66a26559cbc2ceb25eecf452f4c5683f4ac159e63b07043fdacb1078378ac3e",
+    "src/rdv/assets/samples/D40-1.jpg": "89a69a368d2f595e204b6596c20154561c796f91260c3233e667f5bcd27f52af",
+    "src/rdv/assets/samples/D40-2.jpg": "15b579c9da25aeb2e8998c78dff06dfdc56a356a0a132ad7d2262f7428ac9798",
+    "src/rdv/assets/samples/LICENSE": "87fba94af7406c44ef9b30ab471f0554e5fcfb0d213f644394da6ecd07529673",
+    "tests/fixtures/rdd2022-mini/ATTRIBUTION.md": "a1877a3a41a1bac70c97192c819e606f1dc7059a862c43c88a454e48ea563013",
+    "tests/fixtures/rdd2022-mini/Czech/train/annotations/xmls/Czech_000108.xml": "ae3bf5f72e366d62423421ef5b3894b390dd863f97fbfe3f1e116123abf199d2",
+    "tests/fixtures/rdd2022-mini/Czech/train/annotations/xmls/Czech_000254.xml": "c1752d8fe716084be9724f539703ae63364907c80abfe7871e0edbbf6796ee5f",
+    "tests/fixtures/rdd2022-mini/Czech/train/annotations/xmls/Czech_000898.xml": "cfdbaa48764221412b06d7aad5f764d4da967e5f44c0e6690b0a9a858d7695b5",
+    "tests/fixtures/rdd2022-mini/Czech/train/annotations/xmls/Czech_001197.xml": "171a0d52e5bab22be2706652acbe143f011ee2f8ae6e6cedcbda53b5a1ea26eb",
+    "tests/fixtures/rdd2022-mini/Czech/train/annotations/xmls/Czech_003405.xml": "a0d099c5b916b7b19edfc5114fc4c119da8bb2af8f39c6b2b4e8909d39153809",
+    "tests/fixtures/rdd2022-mini/Czech/train/images/Czech_000108.jpg": "f2cce6a76f60028714e16fa64a927cb576e1b44cd1bef1fddde306e9a9e4a12b",
+    "tests/fixtures/rdd2022-mini/Czech/train/images/Czech_000254.jpg": "68a4f38d918a539c4fe350fd843d4b7b9d22fce9d7640a037535e881a71831a0",
+    "tests/fixtures/rdd2022-mini/Czech/train/images/Czech_000898.jpg": "32416dc21a7d791105258d8eaa8da2faf39f6d7f7e65a52247099e5bdd396534",
+    "tests/fixtures/rdd2022-mini/Czech/train/images/Czech_001197.jpg": "12f7d758c7272ae500105a8b09855ca7f6dc4618e012349c39eacc49d85291d2",
+    "tests/fixtures/rdd2022-mini/Czech/train/images/Czech_003405.jpg": "b66a26559cbc2ceb25eecf452f4c5683f4ac159e63b07043fdacb1078378ac3e",
+    "tests/fixtures/rdd2022-mini/India/train/annotations/xmls/India_001080.xml": "84b06b7b82653b2ba8bafb8fe399f17428d9d73907a9bd1eac67ee0d978ebadd",
+    "tests/fixtures/rdd2022-mini/India/train/annotations/xmls/India_003079.xml": "d97af908d17081fc18cb8109deccb5ec211626435e446b6a6df2aeb5d27eac15",
+    "tests/fixtures/rdd2022-mini/India/train/annotations/xmls/India_005561.xml": "a14e03dfeff9d840f77a27dddd4f7553d21825b67d879c3e3bb39f9a8e5baffc",
+    "tests/fixtures/rdd2022-mini/India/train/annotations/xmls/India_005672.xml": "4752809a1da27e0cd4c05172801cf97ef82006c28f3bdf3e2d614ffa59768ef6",
+    "tests/fixtures/rdd2022-mini/India/train/annotations/xmls/India_008307.xml": "b182f2ea18719637135372f18a0c25cf99f922b1f6ba366c57f555963478ad73",
+    "tests/fixtures/rdd2022-mini/India/train/annotations/xmls/India_008857.xml": "919143dfe2d0fa1ac5dd9ae131d80e22e9569945096009a293ca65b196cdf5c4",
+    "tests/fixtures/rdd2022-mini/India/train/images/India_001080.jpg": "bea4d35f0e8227096ea2cb88d91130127f725a8fc54d6132307274871a3a2170",
+    "tests/fixtures/rdd2022-mini/India/train/images/India_003079.jpg": "15b579c9da25aeb2e8998c78dff06dfdc56a356a0a132ad7d2262f7428ac9798",
+    "tests/fixtures/rdd2022-mini/India/train/images/India_005561.jpg": "d77b511071931308e41fc5d9a5353a41c3c3ab54f80980e40a03834aced22c5c",
+    "tests/fixtures/rdd2022-mini/India/train/images/India_005672.jpg": "b216219e4a82283b6cf02ee4b9e9ca10e056572ef537f8890aeb0cb572b7b924",
+    "tests/fixtures/rdd2022-mini/India/train/images/India_008307.jpg": "856ad8863de52296d6a5511c8cf24a13c7fd629006e8ceff0242a35220120edb",
+    "tests/fixtures/rdd2022-mini/India/train/images/India_008857.jpg": "704aec81e905065319b9504a12867f167a20f4c2001db628c35d492cf77d0e6c",
+    "tests/fixtures/rdd2022-mini/Japan/train/annotations/xmls/Japan_002986.xml": "592a1798abed2d7a2317a650bd6dd2286de55e0964cac6b416c0abe8d33f015c",
+    "tests/fixtures/rdd2022-mini/Japan/train/annotations/xmls/Japan_004818.xml": "d8c8c862d0e6ce49fb40690b60269a374550f49cf9bbec400ef14acc313e62ad",
+    "tests/fixtures/rdd2022-mini/Japan/train/annotations/xmls/Japan_005188.xml": "e0c7c9bb153480619326933fa5b054ed4f77ccdf2c30f1ddd64c4e5bb31aac26",
+    "tests/fixtures/rdd2022-mini/Japan/train/annotations/xmls/Japan_007811.xml": "985e79c3d63584a8e813811b11b3e944aa40932243ea7831dcce3f33d9374d64",
+    "tests/fixtures/rdd2022-mini/Japan/train/annotations/xmls/Japan_010043.xml": "55275f39b190e2950265881c2bffd078b1aeb5f6a74ca265cc48d53e47e72009",
+    "tests/fixtures/rdd2022-mini/Japan/train/images/Japan_002986.jpg": "39bca376e45fceba37be9eb076500147d2037737dbabf9bd7ce04f15e08942d3",
+    "tests/fixtures/rdd2022-mini/Japan/train/images/Japan_004818.jpg": "272f410bc16a1a1561d350f2e975f67f22cd972a9ce19a9dea36b0a936419c6f",
+    "tests/fixtures/rdd2022-mini/Japan/train/images/Japan_005188.jpg": "89a69a368d2f595e204b6596c20154561c796f91260c3233e667f5bcd27f52af",
+    "tests/fixtures/rdd2022-mini/Japan/train/images/Japan_007811.jpg": "f0cfe2ceb2feec6ddfddf5137bb48b01dc4c686defbab1d0b907cb0dc989cee9",
+    "tests/fixtures/rdd2022-mini/Japan/train/images/Japan_010043.jpg": "8cf6752ff54aff0608c19cc9066e12845b9765c14ba9b2b6fbff10788dc763de",
+    "tests/fixtures/rdd2022-mini/LICENSE": "87fba94af7406c44ef9b30ab471f0554e5fcfb0d213f644394da6ecd07529673",
+    "tests/fixtures/rdd2022-mini/splits.json": "110b5fc7106504f646bb87ab27fd289fbeeb157fc28a880157c628c00a624e58"
+  }
+}

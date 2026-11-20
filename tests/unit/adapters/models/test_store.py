@@ -230,3 +230,42 @@ def test_pull_with_an_unknown_id_lists_the_manifest(tmp_path: Path) -> None:
     store = CachedModelStore(manifest, tmp_path / "models")
     with pytest.raises(ModelError, match="not in the manifest"):
         store.pull("demo")
+
+
+def test_pull_sends_an_optional_github_token_for_private_releases(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    headers: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        headers.update(request.headers)
+        return httpx.Response(200, content=CONTENT)
+
+    entry = _entry(url="https://github.com/owner/repo/releases/download/models-v1/demo.onnx")
+    store = _store(
+        tmp_path,
+        entry=entry,
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token")
+
+    store.pull("demo")
+
+    assert headers.get("authorization") == "Bearer test-token"
+
+
+def test_pull_does_not_send_a_token_to_third_party_hosts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    headers: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        headers.update(request.headers)
+        return httpx.Response(200, content=CONTENT)
+
+    store = _store(tmp_path, client=httpx.Client(transport=httpx.MockTransport(handler)))
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token")
+
+    store.pull("demo")
+
+    assert "authorization" not in headers

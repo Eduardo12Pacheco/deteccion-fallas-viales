@@ -8,7 +8,8 @@ it with an HTTP ``Range`` request. ``RDV_OFFLINE=1`` fails before any request.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import os
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -21,6 +22,22 @@ from rdv.hashing import sha256_file
 
 _CHUNK_SIZE = 1024 * 1024
 _DEFAULT_TIMEOUT = 60.0
+_GITHUB_HOSTS = {"github.com", "www.github.com", "api.github.com"}
+
+
+def request_headers(url: str, headers: Mapping[str, str]) -> dict[str, str]:
+    """Add an optional GitHub token so private release assets can be pulled.
+
+    The project needs zero mandatory keys: anonymous downloads work for public
+    releases. For a private repository the user may export ``GITHUB_TOKEN`` or
+    ``GH_TOKEN`` (for example ``gh auth token``) and the token is only sent to
+    GitHub hosts, never to a third-party mirror.
+    """
+    merged = dict(headers)
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if token and urlparse(url).hostname in _GITHUB_HOSTS:
+        merged["Authorization"] = f"Bearer {token}"
+    return merged
 
 
 def _file_name(entry: ModelEntry) -> str:
@@ -131,7 +148,9 @@ class CachedModelStore:
         )
         try:
             try:
-                with client.stream("GET", entry.url, headers=headers) as response:
+                with client.stream(
+                    "GET", entry.url, headers=request_headers(entry.url, headers)
+                ) as response:
                     if response.status_code == 416 and start:
                         # The server says the range is already complete.
                         return self._finish(part, destination, entry)

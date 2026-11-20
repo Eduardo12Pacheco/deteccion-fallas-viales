@@ -49,5 +49,9 @@ as a GitHub Release asset (`models-v1`).
   traced to the exact artifact.
 - Downloads are idempotent: a verified cache entry short-circuits the network,
   and a network failure keeps the `.part` for the next attempt.
+- No key is required for a public release. Because the portfolio repository is
+  private, `pull` also honors an optional `GITHUB_TOKEN`/`GH_TOKEN` (for
+  example `gh auth token`) and sends the bearer header only to GitHub hosts;
+  anonymous requests are unchanged.
 - The manifest is small enough to review by hand, which keeps the trust anchor
   visible in the repository instead of hidden in release metadata.

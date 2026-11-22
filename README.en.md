@@ -1,27 +1,35 @@
-# deteccion-fallas-viales
+<p align="center"><img src="docs/assets/readme/hero.en.svg" width="100%" alt="Road damage detection: cracks, alligator cracks and potholes marked on a road surface with classes D00, D10, D20 and D40"></p>
 
-[Español](README.md) · **English**
+<p align="center"><a href="README.md">Español</a> · <b>English</b></p>
 
-Detect road damage — longitudinal, transverse and alligator cracks plus potholes — in images and video with a reproducible RT-DETRv2 fine-tune, a torch-free ONNX Runtime path and a finished local web app.
+<p align="center"><b>Detects cracks and potholes in road photos and video with a CPU-first model, no PyTorch required, and a finished local web app.</b></p>
 
-[![CI](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml)
-[![Latest release](https://img.shields.io/github/v/release/Eduardo12Pacheco/deteccion-fallas-viales)](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/releases)
+<p align="center">
 
-![The local web app detecting road damage in a sample image](docs/assets/demo.gif)
+[![CI](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml) [![Latest release](https://img.shields.io/github/v/release/Eduardo12Pacheco/deteccion-fallas-viales)](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/releases)
 
-## What it does
+</p>
+
+<p align="center"><img src="docs/assets/demo.gif" width="100%" alt="The local web app detecting road damage in a sample image"></p>
+
+## What it is
+
+It detects four types of road-surface damage: longitudinal cracks (D00), transverse cracks (D10), alligator cracks (D20) and potholes (D40). It works on images and video with an RT-DETRv2 detector exported to ONNX, and you can use it from the `rdv` CLI, a local web app or a desktop bundle.
+
+**Status:** portfolio project at v0.1.0, actively maintained.
+
+- **Images and video:** per-image annotated PNG/JSON plus an MP4 overlay, per-frame detections, an IoU tracker and a damage-coverage summary.
+- **Finished local app:** FastAPI + vanilla ES modules, drag-and-drop, confidence/class filters without re-inference, downloads, light/dark, keyboard and mobile support — screenshots in [docs/assets/screenshots](docs/assets/screenshots).
+- **Ships everywhere:** `uv tool install` on Linux, Windows and macOS, and portable PyInstaller desktop bundles from GitHub Releases.
+
+## Why it's different
 
 - **License-aware detector:** RT-DETRv2 R18vd (Apache-2.0 code and weights) instead of the AGPL-3.0 Ultralytics stack; the rejection is documented in [ADR 0001](docs/adr/0001-detector-choice.md).
 - **Reproducible fine-tune:** a seeded RT-DETRv2 recipe on RDD2022 Japan/India/Czech that fits an 8 GB RTX 4060 (bf16, EMA, auto micro-batch, resumable checkpoints) — see [docs/TRAINING.md](docs/TRAINING.md).
 - **Own metrics engine:** numpy COCO mAP, per-class PR curves, 5x5 confusion matrix, TIDE-style error taxonomy, per-country and Norway OOD breakdowns, verified against `pycocotools` — see [docs/EVALUATION.md](docs/EVALUATION.md).
-- **CPU-first deployment:** a single-file ONNX model with a sorted, torch-free base install; optional PyTorch/CUDA inference inside the training environment.
-- **Images and video:** per-image annotated PNG/JSON plus an MP4 overlay, per-frame detections, an IoU tracker and a damage-coverage summary.
-- **Finished local app:** FastAPI + vanilla ES modules, drag-and-drop, confidence/class filters without re-inference, downloads, light/dark, keyboard and mobile support — screenshots in [docs/assets/screenshots](docs/assets/screenshots).
-- **Ships everywhere:** `uv tool install` on Linux/Windows/macOS (L1) and portable PyInstaller desktop bundles from GitHub Releases (L3).
+- **CPU-first deployment:** a single-file ONNX model with a torch-free base install; optional PyTorch/CUDA inference inside the training environment.
 
-## Architecture
+## How it works
 
 ```mermaid
 flowchart TB
@@ -46,9 +54,17 @@ rdv models pull
 rdv serve
 ```
 
-Open <http://127.0.0.1:16080>, drop an image or video, and adjust confidence/classes live. For a headless batch instead of the app, replace the last command with `rdv samples --dest samples && rdv detect samples/*.jpg --out detections`.
+Check the install with `rdv --version`, which prints `rdv 0.1.0`. Open <http://127.0.0.1:16080>, drop an image or video, and adjust confidence/classes live. For a headless batch instead of the app, replace the last command with `rdv samples --dest samples && rdv detect samples/*.jpg --out detections` (the `*` wildcard is expanded by bash; in PowerShell, list the files explicitly).
 
-Prefer no Python? Download `RoadDamageVision-0.1.0-<platform>` from [Releases](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/releases), unpack it and run `RoadDamageVision`; the model is embedded and the app works offline. While the repository is private, authenticate with `gh auth login` and fetch assets with `gh release download`; the same commands then work with the downloaded wheel.
+Prefer no Python? Download the bundle for your platform from [Releases](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/releases), unpack it and run `RoadDamageVision` (`RoadDamageVision.exe` on Windows). The model is embedded and the app works offline.
+
+| Platform | Archive |
+| --- | --- |
+| Linux x64 | `RoadDamageVision-0.1.0-linux-x64.tar.gz` |
+| Windows x64 | `RoadDamageVision-0.1.0-windows-x64.zip` |
+| macOS arm64 | `RoadDamageVision-0.1.0-macos-arm64.tar.gz` |
+
+While the repository is private, authenticate with `gh auth login` and fetch assets with `gh release download`; the same commands then work with the downloaded wheel.
 
 ## Results
 
@@ -71,13 +87,6 @@ Held-out in-domain test split (Japan + India + Czech), 2,100 images, COCO metric
 <!-- metrics:end -->
 
 The S10 minimum bar is mAP@0.5 >= 0.35, mAP@0.5:0.95 >= 0.15 and every class AP@0.5 >= 0.10. Reproduce with `rdv evaluate` (see [docs/EVALUATION.md](docs/EVALUATION.md)); the full run record is in [`reports/v1/run.json`](reports/v1/run.json) and the model card in [docs/MODEL_CARD.md](docs/MODEL_CARD.md).
-
-## Licenses
-
-- **Code:** MIT — see [LICENSE](LICENSE).
-- **Base weights:** `PekingU/rtdetr_v2_r18vd`, Apache-2.0 (Hugging Face metadata).
-- **Dataset:** RDD2022 (Figshare `21431547`), declared CC BY 4.0; the paper/mirrors say CC BY-SA 4.0, so fixtures and samples are redistributed under the conservative CC BY-SA 4.0 stance. Sources, checksums and lineage: [docs/DATA.md](docs/DATA.md).
-- **Rejected option:** Ultralytics YOLO is AGPL-3.0 and is not a dependency; the third-party inventory is in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
 ## Limitations
 
@@ -111,3 +120,14 @@ make ci-local        # lint, types, tests, coverage, docs and clean-install smok
 ```
 
 Tests are deterministic and offline by default (`pytest-socket`); the browser suite uses Playwright on localhost. No telemetry, no API keys, no cloud services.
+
+## Licenses
+
+- **Code:** MIT — see [LICENSE](LICENSE).
+- **Base weights:** `PekingU/rtdetr_v2_r18vd`, Apache-2.0 (Hugging Face metadata).
+- **Dataset:** RDD2022 (Figshare `21431547`), declared CC BY 4.0; the paper/mirrors say CC BY-SA 4.0, so fixtures and samples are redistributed under the conservative CC BY-SA 4.0 stance. Sources, checksums and lineage: [docs/DATA.md](docs/DATA.md).
+- **Rejected option:** Ultralytics YOLO is AGPL-3.0 and is not a dependency; the third-party inventory is in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
+## Author
+
+Eduardo Pacheco · <https://github.com/Eduardo12Pacheco>

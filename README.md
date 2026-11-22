@@ -1,27 +1,35 @@
-# deteccion-fallas-viales
+<p align="center"><img src="docs/assets/readme/hero.svg" width="100%" alt="Detección de fallas viales: grietas, piel de cocodrilo y baches marcados en una carretera con las clases D00, D10, D20 y D40"></p>
 
-**Español** · [English](README.en.md)
+<p align="center"><b>Español</b> · <a href="README.en.md">English</a></p>
 
-Detecta daños en la carretera — grietas longitudinales, transversales y de piel de cocodrilo, además de baches — en imágenes y video con un fine-tune reproducible de RT-DETRv2, inferencia ONNX sin PyTorch y una aplicación web local terminada.
+<p align="center"><b>Detecta grietas y baches en fotos y video de carretera con un modelo que corre en CPU, sin PyTorch, y una app web local.</b></p>
 
-[![CI](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/actions/workflows/ci.yml)
-[![Licencia: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml)
-[![Última versión](https://img.shields.io/github/v/release/Eduardo12Pacheco/deteccion-fallas-viales)](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/releases)
+<p align="center">
 
-![La aplicación web local detectando daños en una imagen de ejemplo](docs/assets/demo.gif)
+[![CI](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/actions/workflows/ci.yml) [![Licencia: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml) [![Última versión](https://img.shields.io/github/v/release/Eduardo12Pacheco/deteccion-fallas-viales)](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/releases)
 
-## Qué hace
+</p>
+
+<p align="center"><img src="docs/assets/demo.gif" width="100%" alt="La aplicación web local detectando daños en una imagen de ejemplo"></p>
+
+## Qué es
+
+Detecta cuatro tipos de daño en el pavimento: grietas longitudinales (D00), grietas transversales (D10), piel de cocodrilo (D20) y baches (D40). Funciona sobre imágenes y video con un detector RT-DETRv2 exportado a ONNX, y se usa desde la CLI `rdv`, una app web local o un bundle de escritorio.
+
+**Estado:** proyecto de portafolio en v0.1.0, con mantenimiento activo.
+
+- **Imágenes y video:** PNG/JSON anotados por imagen más un MP4 con overlay, detecciones por frame, tracker IoU y resumen de cobertura de daño.
+- **Aplicación local terminada:** FastAPI + módulos ES sin build, arrastrar y soltar, filtros de confianza/clase sin repetir la inferencia, descargas, modo claro/oscuro, teclado y móvil — capturas en [docs/assets/screenshots](docs/assets/screenshots).
+- **Se instala en todas partes:** `uv tool install` en Linux, Windows y macOS, y bundles de escritorio PyInstaller desde GitHub Releases.
+
+## Por qué es distinto
 
 - **Detector con licencia clara:** RT-DETRv2 R18vd (código y pesos Apache-2.0) en lugar del stack AGPL-3.0 de Ultralytics; el rechazo está documentado en [ADR 0001](docs/adr/0001-detector-choice.md).
 - **Fine-tune reproducible:** receta RT-DETRv2 con semillas sobre RDD2022 Japón/India/Chequia que cabe en una RTX 4060 de 8 GB (bf16, EMA, micro-batch automático, checkpoints reanudables) — ver [docs/TRAINING.md](docs/TRAINING.md).
 - **Motor de métricas propio:** mAP COCO en numpy, curvas PR por clase, matriz de confusión 5x5, taxonomía de errores tipo TIDE, desglose por país y Noruega fuera de dominio, verificado contra `pycocotools` — ver [docs/EVALUATION.md](docs/EVALUATION.md).
 - **Despliegue CPU primero:** un modelo ONNX de un solo archivo con instalación base sin torch; inferencia PyTorch/CUDA opcional dentro del entorno de entrenamiento.
-- **Imágenes y video:** PNG/JSON anotados por imagen más un MP4 con overlay, detecciones por frame, tracker IoU y resumen de cobertura de daño.
-- **Aplicación local terminada:** FastAPI + módulos ES sin build, arrastrar y soltar, filtros de confianza/clase sin repetir la inferencia, descargas, modo claro/oscuro, teclado y móvil — capturas en [docs/assets/screenshots](docs/assets/screenshots).
-- **Se instala en todas partes:** `uv tool install` en Linux/Windows/macOS (L1) y bundles de escritorio PyInstaller desde GitHub Releases (L3).
 
-## Arquitectura
+## Cómo funciona
 
 ```mermaid
 flowchart TB
@@ -46,9 +54,17 @@ rdv models pull
 rdv serve
 ```
 
-Abre <http://127.0.0.1:16080>, suelta una imagen o un video y ajusta confianza/clases en vivo. Para un lote sin interfaz, sustituye el último comando por `rdv samples --dest samples && rdv detect samples/*.jpg --out detections`.
+Comprueba la instalación con `rdv --version`, que responde `rdv 0.1.0`. Abre <http://127.0.0.1:16080>, suelta una imagen o un video y ajusta confianza/clases en vivo. Para un lote sin interfaz, sustituye el último comando por `rdv samples --dest samples && rdv detect samples/*.jpg --out detections` (el comodín `*` lo expande bash; en PowerShell lista los archivos explícitamente).
 
-¿Sin Python? Descarga `RoadDamageVision-0.1.0-<plataforma>` desde [Releases](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/releases), descomprímelo y ejecuta `RoadDamageVision`; el modelo va incluido y la app funciona sin conexión. Mientras el repositorio sea privado, autentícate con `gh auth login` y descarga los assets con `gh release download`; los mismos comandos funcionan con el wheel descargado.
+¿Sin Python? Descarga el bundle de tu plataforma desde [Releases](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/releases), descomprímelo y ejecuta `RoadDamageVision` (`RoadDamageVision.exe` en Windows). El modelo va incluido y la app funciona sin conexión.
+
+| Plataforma | Archivo |
+| --- | --- |
+| Linux x64 | `RoadDamageVision-0.1.0-linux-x64.tar.gz` |
+| Windows x64 | `RoadDamageVision-0.1.0-windows-x64.zip` |
+| macOS arm64 | `RoadDamageVision-0.1.0-macos-arm64.tar.gz` |
+
+Mientras el repositorio sea privado, autentícate con `gh auth login` y descarga los assets con `gh release download`; los mismos comandos funcionan con el wheel descargado.
 
 ## Resultados
 
@@ -72,13 +88,6 @@ Split de test retenido en dominio (Japón + India + Chequia), 2.100 imágenes, m
 
 El mínimo S10 es mAP@0.5 >= 0,35, mAP@0.5:0.95 >= 0,15 y AP@0.5 >= 0,10 en cada clase. Reproduce con `rdv evaluate` (ver [docs/EVALUATION.md](docs/EVALUATION.md)); el registro completo está en [`reports/v1/run.json`](reports/v1/run.json) y la model card en [docs/MODEL_CARD.md](docs/MODEL_CARD.md).
 
-## Licencias
-
-- **Código:** MIT — ver [LICENSE](LICENSE).
-- **Pesos base:** `PekingU/rtdetr_v2_r18vd`, Apache-2.0 (metadatos de Hugging Face).
-- **Dataset:** RDD2022 (Figshare `21431547`), declarado CC BY 4.0; el paper y algunos mirrors dicen CC BY-SA 4.0, así que los fixtures y samples se redistribuyen con la postura conservadora CC BY-SA 4.0. Fuentes, checksums y linaje: [docs/DATA.md](docs/DATA.md).
-- **Opción rechazada:** Ultralytics YOLO es AGPL-3.0 y no es dependencia; el inventario de terceros está en [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
-
 ## Limitaciones
 
 - **No es seguridad crítica.** Los falsos negativos dominan el perfil de error; no uses la salida como única base para decisiones de mantenimiento, seguridad vial, seguros o legales.
@@ -101,7 +110,7 @@ El mínimo S10 es mAP@0.5 >= 0,35, mAP@0.5:0.95 >= 0,15 y AP@0.5 >= 0,10 en cada
 | [docs/RELEASING.md](docs/RELEASING.md) | Orden de release, assets, verificación y rollback |
 | [docs/adr/](docs/adr/README.md) | Registros de decisiones de arquitectura 0001–0011 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) | Configuración de desarrollo y reporte de vulnerabilidades |
-| [README.en.md](README.en.md) | English version |
+| [README.en.md](README.en.md) | Versión en inglés |
 
 ## Desarrollo
 
@@ -111,3 +120,14 @@ make ci-local        # lint, tipos, tests, cobertura, docs y smoke de instalaci�
 ```
 
 Los tests son deterministas y offline por defecto (`pytest-socket`); la suite de navegador usa Playwright en localhost. Sin telemetría, sin claves de API y sin servicios en la nube.
+
+## Licencias
+
+- **Código:** MIT — ver [LICENSE](LICENSE).
+- **Pesos base:** `PekingU/rtdetr_v2_r18vd`, Apache-2.0 (metadatos de Hugging Face).
+- **Dataset:** RDD2022 (Figshare `21431547`), declarado CC BY 4.0; el paper y algunos mirrors dicen CC BY-SA 4.0, así que los fixtures y samples se redistribuyen con la postura conservadora CC BY-SA 4.0. Fuentes, checksums y linaje: [docs/DATA.md](docs/DATA.md).
+- **Opción rechazada:** Ultralytics YOLO es AGPL-3.0 y no es dependencia; el inventario de terceros está en [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
+## Autor
+
+Eduardo Pacheco · <https://github.com/Eduardo12Pacheco>

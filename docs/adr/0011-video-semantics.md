@@ -1,61 +1,62 @@
-# 0011 - Video analysis semantics, tracker limits and atomic outputs
+# 0011 - Semántica del análisis de video, límites del tracker y salidas atómicas
 
-- **Status:** Accepted
-- **Date:** 2026-11-20
-- **Deciders:** project owner (plan decisions D20, D21 and spec S6)
-- **Task:** T7
+- **Estado:** Aceptada
+- **Fecha:** 2026-11-20
+- **Decisores:** responsable del proyecto (decisiones D20, D21 y especificación S6 del plan)
+- **Tarea:** T7
 
-## Context
+## Contexto
 
-Spec S6 requires `rdv detect <video>` to write an annotated MP4 with the same
-frame count as the source, a detections document with per-analyzed-frame
-results plus a summary, and to fail cleanly on truncated or corrupt input.
-Detecting every frame is slow on CPU and the tracker cannot know how the camera
-moved, so the pipeline needs explicit, documented semantics instead of
-best-effort behavior.
+La especificación S6 exige que `rdv detect <video>` escriba un MP4 anotado con el mismo
+número de fotogramas que el origen, un documento de detecciones con resultados por
+fotograma analizado más un resumen, y que falle de forma limpia ante una entrada truncada
+o corrupta. Detectar cada fotograma es lento en CPU, y el tracker no puede saber cómo se
+movió la cámara, así que el pipeline necesita una semántica explícita y documentada en
+lugar de un comportamiento de mejor esfuerzo.
 
-## Decision
+## Decisión
 
-- **Analysis stride.** Only every `max(1, round(source_fps / analysis_fps))`-th
-  source frame runs inference (`--analysis-fps`, default 5). The annotated MP4
-  still contains every source frame; frames that were not analyzed repeat the
-  detections of the most recent analyzed frame. This keeps the output timeline
-  aligned with the input video while paying inference only for sampled frames.
-- **Tracker.** `IouTracker` runs on analyzed frames only, per class, with
-  greedy IoU matching (`iou_threshold=0.3`), `max_age=5` analyzed frames and
-  `min_hits=2`. A "unique instance" is a track that reached `min_hits`; its id
-  is stable and recorded in the detections document (`track_id`).
-- **No ego-motion compensation.** The tracker matches boxes in image
-  coordinates. Moving cameras, pans and zoom change box positions between
-  analyzed frames, so unique-instance counts are approximate and are labeled as
-  such in the documentation and reports. They are never presented as traffic
-  counts or severity measurements.
-- **Coverage.** The summary coverage ratio is the arithmetic mean of the exact
-  per-analyzed-frame box-union coverage (`D21`), a descriptive statistic in
-  `[0, 1]`, never a severity score.
-- **`--max-frames N`.** Caps the number of source frames read. The detections
-  document records `params.max_frames`, the summary flag `truncated` and the
-  Markdown summary says the run stopped early, so a partial analysis is never
-  mistaken for a complete one.
-- **Atomic outputs.** The MP4 is encoded to `<stem>.annotated.part.mp4` and
-  renamed only after a complete, successful stream; the detections JSON and the
-  summaries are written afterwards. A truncated/corrupt input raises
-  `MediaError` (exit 5) and leaves no artifact under its final name.
-- **Frame-count guard.** When the container declares a frame count, a stream
-  that ends early is an error instead of a silently short analysis. Containers
-  without a frame count are analyzed to end-of-stream.
-- **Reports.** `rdv detect` writes `<stem>.annotated.mp4`,
-  `<stem>.detections.json`, `<stem>.summary.json` and `<stem>.summary.md` per
-  video, so several videos in one invocation cannot overwrite each other.
+- **Paso de análisis.** Solo se ejecuta inferencia sobre cada `max(1, round(source_fps /
+  analysis_fps))`-ésimo fotograma de origen (`--analysis-fps`, por defecto 5). El MP4
+  anotado sigue conteniendo todos los fotogramas de origen; los fotogramas no analizados
+  repiten las detecciones del fotograma analizado más reciente. Así la línea de tiempo de
+  la salida queda alineada con el video de entrada y la inferencia solo se paga para los
+  fotogramas muestreados.
+- **Tracker.** `IouTracker` se ejecuta solo sobre los fotogramas analizados, por clase,
+  con emparejamiento voraz por IoU (`iou_threshold=0.3`), `max_age=5` fotogramas analizados
+  y `min_hits=2`. Una "instancia única" es un track que alcanzó `min_hits`; su id es estable
+  y se registra en el documento de detecciones (`track_id`).
+- **Sin compensación de movimiento de la cámara.** El tracker compara cajas en coordenadas
+  de imagen. Las cámaras en movimiento, los paneos y el zoom cambian la posición de las
+  cajas entre fotogramas analizados, así que los conteos de instancias únicas son
+  aproximados y así se etiquetan en la documentación y en los informes. Nunca se presentan
+  como conteos de tráfico ni como mediciones de severidad.
+- **Cobertura.** La razón de cobertura del resumen es la media aritmética de la cobertura
+  exacta por unión de cajas en cada fotograma analizado (`D21`), una estadística descriptiva
+  en `[0, 1]`, nunca una puntuación de severidad.
+- **`--max-frames N`.** Limita el número de fotogramas de origen leídos. El documento de
+  detecciones registra `params.max_frames`, el indicador `truncated` del resumen, y el resumen
+  en Markdown indica que la ejecución se detuvo antes de tiempo, de modo que un análisis
+  parcial nunca se confunda con uno completo.
+- **Salidas atómicas.** El MP4 se codifica en `<stem>.annotated.part.mp4` y solo se renombra
+  tras un flujo completo y exitoso; el JSON de detecciones y los resúmenes se escriben
+  después. Una entrada truncada o corrupta lanza `MediaError` (código 5) y no deja ningún
+  artefacto con su nombre final.
+- **Guarda de número de fotogramas.** Cuando el contenedor declara un número de fotogramas,
+  un flujo que termina antes es un error en lugar de un análisis silenciosamente corto.
+  Los contenedores sin número de fotogramas se analizan hasta el fin del flujo.
+- **Informes.** `rdv detect` escribe `<stem>.annotated.mp4`, `<stem>.detections.json`,
+  `<stem>.summary.json` y `<stem>.summary.md` por video, de modo que varios videos en una
+  misma invocación no se sobrescriban entre sí.
 
-## Consequences
+## Consecuencias
 
-- CPU inference cost scales with `analysis_fps`, not with the source frame
-  rate, while output videos remain frame-accurate.
-- Very short clips may report zero unique instances when fewer than two
-  analyzed frames contain the object (`min_hits=2`); the raw detections are
-  still reported.
-- Detections on skipped frames are a visual aid, not independent predictions;
-  the JSON only lists analyzed frames so metrics and audits are unambiguous.
-- `rdv benchmark` measures video throughput as analyzed frames per second on
-  synthetic 320x240 frames, independently of container decoding.
+- El costo de inferencia en CPU escala con `analysis_fps`, no con la tasa de fotogramas del
+  origen, mientras que los videos de salida siguen siendo exactos fotograma a fotograma.
+- Los clips muy cortos pueden reportar cero instancias únicas cuando menos de dos fotogramas
+  analizados contienen el objeto (`min_hits=2`); las detecciones crudas se siguen reportando.
+- Las detecciones en fotogramas omitidos son una ayuda visual, no predicciones
+  independientes; el JSON solo lista los fotogramas analizados para que las métricas y las
+  auditorías no sean ambiguas.
+- `rdv benchmark` mide el rendimiento de video como fotogramas analizados por segundo sobre
+  fotogramas sintéticos de 320x240, independientemente de la decodificación del contenedor.

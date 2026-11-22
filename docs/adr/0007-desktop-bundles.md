@@ -1,84 +1,86 @@
-# 0007 - Desktop bundles: PyInstaller onedir launcher with an embedded model
+# 0007 - Bundles de escritorio: lanzador PyInstaller onedir con modelo embebido
 
-- **Status:** Accepted
-- **Date:** 2026-11-20
-- **Deciders:** project owner (plan decisions D12 and S15, amendment L5)
-- **Task:** T13
+- **Estado:** Aceptada
+- **Fecha:** 2026-11-20
+- **Decisores:** responsable del proyecto (decisión D12 y S15 del plan; enmienda L5)
+- **Tarea:** T13
 
-## Context
+## Contexto
 
-S15 asks for portable desktop builds on GitHub Releases that start the same
-local app and open the browser, without a second toolchain (Tauri) and without
-the user installing Python. PyInstaller onedir was chosen in D12 because it
-reuses the Python stack and avoids Linux webview dependencies. The bundle must
-work offline, embed the ONNX model passed to `build_desktop.py`, keep the
-torch/scipy/matplotlib training stack out, and stay under the 250 MB budget
-when built with the tiny CI model.
+S15 pide builds de escritorio portátiles en GitHub Releases que arranquen la misma
+aplicación local y abran el navegador, sin una segunda cadena de herramientas (Tauri) y
+sin que el usuario instale Python. PyInstaller onedir se eligió en D12 porque reutiliza
+la pila de Python y evita las dependencias de webview de Linux. El bundle debe
+funcionar sin conexión, embeber el modelo ONNX pasado a `build_desktop.py`, mantener
+fuera el stack de entrenamiento (torch, scipy, matplotlib) y quedar por debajo del
+presupuesto de 250 MB cuando se construye con el modelo pequeño de CI.
 
-Two environment constraints shaped the launcher: L5 requires every default
-local port to live in 16000-16999 (so the historical 8765 became 16080), and
-the uvicorn server must run on a worker thread while Ctrl+C is handled by the
-launcher. PyInstaller 6.22 disables UPX on Linux, and the current
-`opencv-python-headless` 5.x wheel contributes about 165 MB uncompressed
-(79 MB `cv2.abi3.so` plus its codec libraries), which alone would exceed the
-size budget together with Python, ONNX Runtime and numpy.
+Dos restricciones del entorno moldearon el lanzador: L5 exige que todos los puertos
+locales por defecto estén en 16000-16999 (así que el histórico 8765 pasó a 16080), y
+el servidor uvicorn debe ejecutarse en un hilo worker mientras el lanzador maneja
+Ctrl+C. PyInstaller 6.22 desactiva UPX en Linux, y la wheel actual de
+`opencv-python-headless` 5.x aporta unos 165 MB sin comprimir (79 MB de `cv2.abi3.so`
+más sus bibliotecas de códecs), lo que por sí solo superaría el presupuesto de tamaño
+junto con Python, ONNX Runtime y numpy.
 
-## Decision
+## Decisión
 
-- **Entry point and layout.** `packaging/rdv_desktop.py` calls
-  `rdv.entrypoints.desktop.main`. `packaging/rdv.spec` builds an onedir
-  `RoadDamageVision` executable with `console=True`, the web static assets,
-  `models.json`, the samples, the JSON schemas and exactly one ONNX model
-  under `rdv/assets/models/`. `scripts/build_desktop.py` passes the model via
-  `RDV_DESKTOP_MODEL`, runs PyInstaller in a temporary work directory, and
-  archives the result as `RoadDamageVision-<version>-<platform>.tar.gz`
-  (`.zip` on Windows). `scripts/smoke_bundle.py` launches the built directory,
-  verifies `/api/health`, uploads a sample extracted from the bundle, polls the
-  analysis to `done`, then sends Ctrl+C and requires exit code 0.
-- **Launcher.** `rdv.entrypoints.desktop` binds the first free port at or
-  after `16080` (up to 50 attempts), starts uvicorn on a daemon thread, polls
-  `/api/health` for up to 60 s, prints the URL and opens the browser unless
-  `--no-browser` is passed. It also accepts `--host`, `--port` and `--model`.
-  The model defaults to the embedded `assets/models/*.onnx`; `RDV_*` settings
-  still apply, and a bundled model path bypasses any download.
-- **Graceful shutdown.** The server thread is wrapped in a `ServerRunner`
-  whose completion is signalled by a `threading.Event`. This is deliberate:
-  on CPython, a `KeyboardInterrupt` raised inside `threading.Thread.join` can
-  leave `is_alive()`/`join()` lying (the thread is reported dead while it is
-  still running), which previously let the process exit before uvicorn ran the
-  FastAPI lifespan shutdown and deleted its temporary analysis directory. The
-  launcher now sets `server.should_exit`, waits on the event, and the smoke
-  test asserts no `rdv-web-*` directory survives.
-- **No OpenCV in the bundle.** The bundle excludes `cv2` to meet the hard
-  250 MB gate; including it produced a 298 MB stripped bundle. Image analysis
-  is unaffected (Pillow decodes, and `preprocess.resize_linear` mirrors
-  `cv2.INTER_LINEAR` in numpy, unit-tested against OpenCV within one 8-bit
-  level). Video uploads in the bundle return a 422 that explains the
-  limitation instead of calling the file corrupt. The L1 CLI install still
-  ships OpenCV and keeps full video support (S6/S12). This is a documented
-  packaging trade-off, not a change to the web app or the CLI.
-- **Excludes and size.** D12's excludes (`torch`, `torchvision`,
-  `transformers`, `scipy`, `matplotlib`, `tkinter`) are enforced in the spec,
-  plus development tools. The smoke test fails if any forbidden directory is
-  collected or if the summed file size reaches 250 MiB; the tiny-model bundle
-  is about 165 MiB by that measure.
-- **Platforms and trust.** T15 builds Linux (`ubuntu-24.04`), Windows x64 and
-  macOS arm64. The binaries are unsigned: macOS Gatekeeper and Windows
-  SmartScreen require the user to allow the app, and the Linux build needs
-  glibc 2.39+ because it is built on Ubuntu 24.04. These limits are stated in
-  the release documentation rather than silently implied.
+- **Punto de entrada y estructura.** `packaging/rdv_desktop.py` llama a
+  `rdv.entrypoints.desktop.main`. `packaging/rdv.spec` construye un ejecutable onedir
+  `RoadDamageVision` con `console=True`, los assets estáticos de la web, `models.json`,
+  las muestras, los esquemas JSON y exactamente un modelo ONNX bajo
+  `rdv/assets/models/`. `scripts/build_desktop.py` pasa el modelo mediante
+  `RDV_DESKTOP_MODEL`, ejecuta PyInstaller en un directorio de trabajo temporal y
+  archiva el resultado como `RoadDamageVision-<version>-<plataforma>.tar.gz` (`.zip` en
+  Windows). `scripts/smoke_bundle.py` lanza el directorio construido, verifica
+  `/api/health`, sube una muestra extraída del bundle, sondea el análisis hasta `done`,
+  luego envía Ctrl+C y exige código de salida 0.
+- **Lanzador.** `rdv.entrypoints.desktop` enlaza el primer puerto libre a partir de
+  `16080` (hasta 50 intentos), arranca uvicorn en un hilo daemon, sondea `/api/health`
+  durante hasta 60 s, muestra la URL y abre el navegador salvo que se pase
+  `--no-browser`. También acepta `--host`, `--port` y `--model`. El modelo por defecto
+  es el `assets/models/*.onnx` embebido; los ajustes `RDV_*` siguen aplicando, y una
+  ruta de modelo incluida evita cualquier descarga.
+- **Apagado ordenado.** El hilo del servidor se envuelve en un `ServerRunner` cuya
+  finalización se señala con un `threading.Event`. Es deliberado: en CPython, una
+  `KeyboardInterrupt` lanzada dentro de `threading.Thread.join` puede dejar
+  `is_alive()`/`join()` en un estado engañoso (el hilo se reporta muerto mientras sigue
+  ejecutándose), lo que antes permitía que el proceso terminara antes de que uvicorn
+  ejecutara el shutdown del lifespan de FastAPI y borrara su directorio temporal de
+  análisis. Ahora el lanzador establece `server.should_exit`, espera el evento, y el
+  test de humo verifica que no sobreviva ningún directorio `rdv-web-*`.
+- **Sin OpenCV en el bundle.** El bundle excluye `cv2` para cumplir la barrera rígida de
+  250 MB; incluirlo produjo un bundle de 298 MB con binarios sin símbolos de depuración. El análisis de imágenes no
+  se ve afectado (Pillow decodifica, y `preprocess.resize_linear` replica
+  `cv2.INTER_LINEAR` en numpy, probado en unitarios contra OpenCV con una diferencia de
+  un nivel de 8 bits). Las cargas de video en el bundle devuelven un 422 que explica la
+  limitación en lugar de decir que el archivo está dañado. La instalación de la CLI L1
+  sigue incluyendo OpenCV y conserva el soporte completo de video (S6/S12). Es un
+  compromiso de empaquetado documentado, no un cambio en la aplicación web ni en la CLI.
+- **Exclusiones y tamaño.** Las exclusiones de D12 (`torch`, `torchvision`,
+  `transformers`, `scipy`, `matplotlib`, `tkinter`) se aplican en la especificación, además
+  de las herramientas de desarrollo. El test de humo falla si se recolecta algún directorio
+  prohibido o si la suma de tamaños de archivo llega a 250 MiB; el bundle con el modelo
+  pequeño ronda los 165 MiB con esa medida.
+- **Plataformas y confianza.** T15 construye Linux (`ubuntu-24.04`), Windows x64 y macOS
+  arm64. Los binarios no están firmados: Gatekeeper de macOS y SmartScreen de Windows
+  exigen que el usuario permita la aplicación, y el build de Linux necesita glibc 2.39+
+  porque se construye en Ubuntu 24.04. Estos límites se declaran en la documentación de
+  release en lugar de dejarse implícitos.
 
-## Consequences
+## Consecuencias
 
-- The desktop app is a first-class image-analysis product with the real model
-  embedded; video remains a CLI feature supported by the base install.
-- Future OpenCV versions might be small enough to re-enable video in the
-  bundle; the size check in `smoke_bundle.py` makes that a measured decision.
-- `build_desktop.py` needs the pinned model file and the `build` dependency
-  group (`uv sync --group build`); it never needs the train/cuda extras.
-- A port race between `find_free_port` and uvicorn's bind is possible in
-  principle; the launcher then fails its health wait with a clear message
-  instead of hanging.
-- The bundle writes only to the system temporary directory (analysis jobs and
-  the uvicorn logs printed to stdout); it does not modify its install dir and
-  works offline because no model download is attempted.
+- La aplicación de escritorio es un producto de primera clase para el análisis de
+  imágenes, con el modelo real embebido; el video sigue siendo una función de la CLI
+  soportada por la instalación base.
+- Futuras versiones de OpenCV podrían ser lo bastante pequeñas como para reactivar el
+  video en el bundle; la verificación de tamaño en `smoke_bundle.py` convierte eso en
+  una decisión medida.
+- `build_desktop.py` necesita el archivo de modelo fijado y el grupo de dependencias
+  `build` (`uv sync --group build`); nunca necesita los extras train/cuda.
+- Una carrera de puertos entre `find_free_port` y el enlace de uvicorn es posible en
+  principio; el lanzador entonces falla la espera de salud con un mensaje claro en lugar
+  de quedarse colgado.
+- El bundle solo escribe en el directorio temporal del sistema (trabajos de análisis y
+  los logs de uvicorn impresos en stdout); no modifica su directorio de instalación y
+  funciona sin conexión porque no intenta descargar ningún modelo.

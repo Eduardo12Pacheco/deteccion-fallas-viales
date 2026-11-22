@@ -1,61 +1,63 @@
-# 0008 - Model distribution through a pinned manifest and a resumable store
+# 0008 - Distribución del modelo mediante un manifiesto fijado y un almacén reanudable
 
-- **Status:** Accepted
-- **Date:** 2026-11-20
-- **Deciders:** project owner (plan decisions D13, D22, S20)
-- **Task:** T6 (store and CLI), T10 (first published artifact)
+- **Estado:** Aceptada
+- **Fecha:** 2026-11-20
+- **Decisores:** responsable del proyecto (decisiones D13, D22 y S20 del plan)
+- **Tarea:** T6 (almacén y CLI), T10 (primer artefacto publicado)
 
-## Context
+## Contexto
 
-The wheel must stay small and the repository must never commit model weights.
-At the same time `rdv detect` has to work offline once a model is present, must
-not download anything implicitly (spec S20), and must be able to prove that
-the file it executes is the exact artifact the metrics in the README were
-produced with. Weights are produced later, on the owner's GPU, and published
-as a GitHub Release asset (`models-v1`).
+La wheel debe mantenerse pequeña y el repositorio nunca debe versionar pesos de
+modelo. Al mismo tiempo, `rdv detect` tiene que funcionar sin conexión una vez que hay
+un modelo presente, no debe descargar nada de forma implícita (especificación S20) y
+debe poder demostrar que el archivo que ejecuta es exactamente el artefacto con el que
+se produjeron las métricas del README. Los pesos se producen después, en la GPU del
+responsable, y se publican como asset de GitHub Release (`models-v1`).
 
-## Decision
+## Decisión
 
-- `src/rdv/assets/models.json` (schema `rdv.models/v1`) is the single source of
-  truth for downloadable artifacts. Each entry pins `id`, `version`, `url`,
-  `sha256`, `size`, `input_size`, `recommended_score_threshold`, `classes`,
-  `license` and an optional `metrics_ref`. The list is empty until T10
-  publishes the first fine-tune.
-- `rdv models list|pull|path|verify` is the only surface that downloads or
-  validates weights:
-  - `pull` streams to `<name>.part`, resumes with an HTTP `Range` request
-    when a partial file exists (restarting from zero if the server ignores the
-    range), verifies the exact byte size and sha256, and only then renames the
-    file atomically. A sha256 mismatch removes the partial file and exits 4.
-  - `RDV_OFFLINE=1` makes `pull` fail before any HTTP request.
-  - `resolve` accepts either a manifest id (looked up in `RDV_MODEL_DIR`) or an
-    explicit `.onnx` path, so local models and published models share one
-    code path.
-  - `verify` compares a file with its manifest entry (or finds the entry whose
-    digest matches) and returns that entry.
-- `rdv detect` resolves the model through the same store. A missing model is
-  a `ModelError` (exit 4) whose message points at `rdv models pull`; there is
-  no silent download.
-- The recommended threshold comes from the manifest; `RDV_SCORE_THRESHOLD`
-  overrides it and `--conf` overrides both. Without a manifest entry (local
-  file) the documented fallback is `0.25`.
+- `src/rdv/assets/models.json` (esquema `rdv.models/v1`) es la fuente única de verdad
+  para los artefactos descargables. Cada entrada fija `id`, `version`, `url`, `sha256`,
+  `size`, `input_size`, `recommended_score_threshold`, `classes`, `license` y un
+  `metrics_ref` opcional. La lista queda vacía hasta que T10 publique el primer ajuste
+  fino.
+- `rdv models list|pull|path|verify` es la única superficie que descarga o valida
+  pesos:
+  - `pull` transmite a `<name>.part`, se reanuda con una petición HTTP `Range` cuando
+    existe un archivo parcial (reinicia desde cero si el servidor ignora el rango),
+    verifica el tamaño exacto en bytes y el sha256, y solo después renombra el archivo
+    de forma atómica. Un sha256 no coincidente elimina el archivo parcial y sale con
+    código 4.
+  - `RDV_OFFLINE=1` hace que `pull` falle antes de cualquier petición HTTP.
+  - `resolve` acepta un id del manifiesto (buscado en `RDV_MODEL_DIR`) o una ruta
+    `.onnx` explícita, de modo que los modelos locales y los publicados comparten la
+    misma ruta de código.
+  - `verify` compara un archivo con su entrada del manifiesto (o busca la entrada cuyo
+    digest coincida) y devuelve esa entrada.
+- `rdv detect` resuelve el modelo a través del mismo almacén. Un modelo ausente es un
+  `ModelError` (código 4) cuyo mensaje apunta a `rdv models pull`; no hay descarga
+  silenciosa.
+- El umbral recomendado viene del manifiesto; `RDV_SCORE_THRESHOLD` lo sobrescribe y
+  `--conf` sobrescribe ambos. Sin entrada en el manifiesto (archivo local), el respaldo
+  documentado es `0.25`.
 
-## Consequences
+## Consecuencias
 
-- The repository, wheel and desktop bundle contain no weights; the desktop
-  bundle embeds the artifact at build time (T13) after verifying this same
+- El repositorio, la wheel y el bundle de escritorio no contienen pesos; el bundle
+  embebe el artefacto en el momento de construirlo (T13) después de verificar este mismo
   sha256.
-- Every detection document records the model id and sha256, so a report can be
-  traced to the exact artifact.
-- Downloads are idempotent: a verified cache entry short-circuits the network,
-  and a network failure keeps the `.part` for the next attempt.
-- No key is required for a public release. Because the portfolio repository is
-  private, `pull` also honors an optional `GITHUB_TOKEN`/`GH_TOKEN` (for
-  example `gh auth token`). GitHub answers 404 for a private release's browser
-  download URL even with a bearer token, so with a token set the store resolves
-  the stable manifest URL through the Releases API and downloads the asset with
-  `Accept: application/octet-stream`; the bearer header is sent only to GitHub
-  hosts. Anonymous requests are unchanged and public releases keep working
-  without a token.
-- The manifest is small enough to review by hand, which keeps the trust anchor
-  visible in the repository instead of hidden in release metadata.
+- Cada documento de detecciones registra el id del modelo y su sha256, de modo que un
+  informe puede rastrearse hasta el artefacto exacto.
+- Las descargas son idempotentes: una entrada de caché verificada evita la red, y un
+  fallo de red conserva el `.part` para el siguiente intento.
+- Para una publicación pública no se requiere ninguna clave. Como el repositorio del
+  portafolio es privado, `pull` también acepta un `GITHUB_TOKEN`/`GH_TOKEN` opcional
+  (por ejemplo, `gh auth token`). GitHub responde 404 a la URL de descarga del navegador
+  de un release privado incluso con un token bearer; por eso, cuando hay token, el
+  almacén resuelve la URL estable del manifiesto a través de la API de Releases y
+  descarga el asset con `Accept: application/octet-stream`. El encabezado bearer solo se
+  envía a hosts de GitHub. Las peticiones anónimas no cambian, y los releases públicos
+  siguen funcionando sin token.
+- El manifiesto es lo bastante pequeño como para revisarlo a mano, lo que mantiene visible
+  el ancla de confianza en el repositorio en lugar de ocultarla en los metadatos del
+  release.

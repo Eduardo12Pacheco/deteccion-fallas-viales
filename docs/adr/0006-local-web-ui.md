@@ -1,76 +1,78 @@
-# 0006 - Local web UI: FastAPI, polling jobs and loopback-only security
+# 0006 - Interfaz web local: FastAPI, trabajos por sondeo y seguridad solo de loopback
 
-- **Status:** Accepted
-- **Date:** 2026-11-20
-- **Deciders:** project owner (plan decisions D11, D19, S12 and S14)
-- **Task:** T11
+- **Estado:** Aceptada
+- **Fecha:** 2026-11-20
+- **Decisores:** responsable del proyecto (decisiones D11, D19 y especificaciones S12 y S14 del plan)
+- **Tarea:** T11
 
-## Context
+## Contexto
 
-`rdv serve` must expose the detector through a finished local browser app
-without asking the user to install Node, a database or a cloud service. The
-same server ships inside the desktop bundles (D12), so it must start in a few
-hundred milliseconds, never load the torch stack, and leave no files behind.
-The tool also runs on a shared laptop where several portfolio projects start
-local servers in parallel, which is why L5 restricts default ports to the
-16000-16999 range (`16080` by default) and tests to that range or port 0.
+`rdv serve` debe exponer el detector mediante una aplicación de navegador terminada,
+sin pedir al usuario que instale Node, una base de datos ni un servicio en la nube.
+El mismo servidor viaja dentro de los bundles de escritorio (D12), así que debe
+arrancar en pocos cientos de milisegundos, nunca cargar el stack de torch y no dejar
+archivos atrás. La herramienta también corre en un portátil compartido donde varios
+proyectos de portafolio levantan servidores locales en paralelo, por eso L5 restringe
+los puertos por defecto al rango 16000-16999 (`16080` por defecto) y los tests a ese
+rango o al puerto 0.
 
-Inference is CPU/GPU-bound and must not run on the request thread. A browser
-polling loop is simpler and more robust than SSE/WebSockets for a single-user
-local app, and the detections document is already plain JSON.
+La inferencia está limitada por CPU/GPU y no debe ejecutarse en el hilo de la
+petición. Un bucle de sondeo desde el navegador es más simple y robusto que SSE o
+WebSockets para una aplicación local de un solo usuario, y el documento de
+detecciones ya es JSON plano.
 
-## Decision
+## Decisión
 
-- **Stack.** FastAPI + uvicorn serving JSON plus a static ES-module page. The
-  plan's server-side contract is implemented in `entrypoints/web`: `app.py`
-  (factory + lifespan), `api.py` (routes), `jobs.py` (worker, queue, TTL) and
-  `security.py` (ASGI middlewares). No Node build, no frontend framework, no
-  database.
-- **Job model.** `POST /api/analyses` validates the upload synchronously, then
-  creates a job in a per-process `mkdtemp` root and enqueues it. One daemon
-  worker thread per process consumes the queue, so concurrent requests cannot
-  oversubscribe the GPU/CPU. Progress is an Observer over the existing
-  `ProgressSink` events and is stored as `{stage, current, total, fraction,
-  message}`; counters never move backwards. `GET /api/analyses/{id}` returns
-  status, progress and (once done) the inline `rdv.detections/v1` document and
-  summary, which the browser renders without another request.
-- **Lifecycle.** The TTL comes from `RDV_ANALYSIS_TTL_MIN` (default 30). A
-  background sweeper removes finished jobs, `DELETE` removes one job
-  immediately, and the lifespan shutdown removes the whole temporary root.
-  Jobs that are queued or running are not swept.
-- **Uploads.** Files are stored under a fixed `source` name inside the job
-  directory; the client filename is sanitized and only used as a display
-  label. Content is sniffed by decoding with the real adapters: images via
-  Pillow and videos via OpenCV. Anything that decodes as neither is 422.
-- **Security (S14).** A `LocalAccessMiddleware` rejects any `Host` other than
-  `localhost`, `127.0.0.1` or `[::1]` with 421 (DNS-rebinding protection) and
-  any state-changing request whose `Origin` does not match the `Host` with
-  403. `UploadSizeLimitMiddleware` enforces `RDV_MAX_UPLOAD_MB` from
-  `Content-Length` and, for chunked requests, while streaming the body to a
-  spooled temporary file; oversized requests get 413 before the multipart
-  parser sees the data. No CORS middleware or headers are added. Path
-  parameters are validated against a hex job-id pattern, so request paths
-  never reach the filesystem.
-- **Downloads.** `report.json` is the stored detections document with the
-  upload name substituted for the private server path. `report.html` is
-  self-contained (inline CSS and a base64 annotated still for images).
-  `annotated.png` exists for image jobs; the video overlay is drawn client-side
-  from the JSON in the frontend so the server never transcodes.
-- **CLI.** `rdv serve [--host] [--port] [--model] [--no-browser]` builds the
-  detector before binding (a missing model fails fast with exit 4 and the
-  `rdv models pull` hint), then runs uvicorn and opens the browser unless
-  `--no-browser` is passed. The default is `127.0.0.1:16080`.
+- **Stack.** FastAPI + uvicorn sirven JSON y una página estática con módulos ES. El
+  contrato del servidor del plan se implementa en `entrypoints/web`: `app.py` (fábrica
+  + lifespan), `api.py` (rutas), `jobs.py` (worker, cola, TTL) y `security.py`
+  (middlewares ASGI). Sin build de Node, sin framework de frontend, sin base de datos.
+- **Modelo de trabajos.** `POST /api/analyses` valida la carga de forma síncrona, luego
+  crea un trabajo en una raíz `mkdtemp` por proceso y lo encola. Un hilo worker daemon
+  por proceso consume la cola, de modo que las peticiones concurrentes no pueden
+  sobrecargar la GPU/CPU. El progreso es un Observer sobre los eventos `ProgressSink`
+  existentes y se guarda como `{stage, current, total, fraction, message}`; los
+  contadores nunca retroceden. `GET /api/analyses/{id}` devuelve estado, progreso y
+  (al terminar) el documento `rdv.detections/v1` y el resumen en línea, que el
+  navegador renderiza sin otra petición.
+- **Ciclo de vida.** El TTL viene de `RDV_ANALYSIS_TTL_MIN` (por defecto 30). Un
+  barredor en segundo plano elimina los trabajos terminados, `DELETE` elimina uno de
+  inmediato y el apagado del lifespan elimina toda la raíz temporal. Los trabajos
+  encolados o en ejecución no se barren.
+- **Cargas.** Los archivos se guardan con un nombre fijo `source` dentro del directorio
+  del trabajo; el nombre enviado por el cliente se sanea y solo se usa como etiqueta de
+  visualización. El contenido se detecta decodificándolo con los adaptadores reales:
+  imágenes con Pillow y videos con OpenCV. Lo que no se decodifica como ninguno de los
+  dos responde 422.
+- **Seguridad (S14).** `LocalAccessMiddleware` rechaza con 421 cualquier `Host` que no
+  sea `localhost`, `127.0.0.1` o `[::1]` (protección contra DNS rebinding) y rechaza
+  con 403 cualquier petición que modifique estado cuyo `Origin` no coincida con el
+  `Host`. `UploadSizeLimitMiddleware` aplica `RDV_MAX_UPLOAD_MB` a partir de
+  `Content-Length` y, en peticiones chunked, mientras transmite el cuerpo a un archivo
+  temporal en disco; las peticiones demasiado grandes reciben 413 antes de que el
+  parser multipart vea los datos. No se agrega ningún middleware ni encabezado CORS.
+  Los parámetros de ruta se validan contra un patrón hexadecimal de id de trabajo, de
+  modo que las rutas de petición nunca llegan al sistema de archivos.
+- **Descargas.** `report.json` es el documento de detecciones guardado con el nombre
+  de la carga sustituido por la ruta privada del servidor. `report.html` es
+  autocontenido (CSS en línea y una imagen anotada en base64 para las imágenes).
+  `annotated.png` existe para los trabajos de imagen; la superposición del video se
+  dibuja en el cliente a partir del JSON, de modo que el servidor nunca transcodifica.
+- **CLI.** `rdv serve [--host] [--port] [--model] [--no-browser]` construye el detector
+  antes de enlazar el puerto (un modelo ausente falla rápido con código de salida 4 y
+  la sugerencia `rdv models pull`), luego ejecuta uvicorn y abre el navegador salvo que
+  se pase `--no-browser`. El valor por defecto es `127.0.0.1:16080`.
 
-## Consequences
+## Consecuencias
 
-- A slow analysis keeps its HTTP requests short; the UI polls at 500 ms.
-- The single worker serializes CPU/GPU use, which is deliberate for a laptop;
-  a queue of analyses waits instead of contesting memory.
-- Spooling chunked uploads costs one extra copy on disk but bounds memory and
-  guarantees 413 even when `Content-Length` is absent.
-- Only loopback access works by default. Binding another address is possible
-  with `--host`, but S14's Host check still accepts only loopback names, so
-  remote access is intentionally unsupported.
-- The static page shipped in T11 is a placeholder; T12 replaces it with the
-  full viewer and Playwright-tested UI states. The API contract is frozen
-  here so the frontend can build against it.
+- Un análisis lento mantiene cortas las peticiones HTTP; la interfaz sondea cada 500 ms.
+- El worker único serializa el uso de CPU/GPU, lo cual es deliberado en un portátil: una
+  cola de análisis espera en lugar de competir por memoria.
+- Hacer spool de las cargas chunked cuesta una copia extra en disco, pero acota la
+  memoria y garantiza un 413 incluso cuando falta `Content-Length`.
+- Por defecto solo funciona el acceso desde loopback. Es posible enlazar otra dirección
+  con `--host`, pero la verificación de Host de S14 solo acepta nombres de loopback, así
+  que el acceso remoto no está soportado a propósito.
+- La página estática enviada en T11 es un marcador de posición; T12 la reemplaza por el
+  visor completo y los estados de UI probados con Playwright. El contrato de la API se
+  congela aquí para que el frontend pueda construirse contra él.

@@ -7,13 +7,16 @@ tests never start a real server or open a real browser.
 
 from __future__ import annotations
 
+import io
 import socket
 from pathlib import Path
 
 import pytest
+import structlog
 
+from rdv.config.logging import configure_logging
 from rdv.entrypoints import desktop
-from rdv.errors import RdvError
+from rdv.errors import ModelError, RdvError
 
 
 class FakeServer:
@@ -229,3 +232,22 @@ def test_parse_args_accepts_the_documented_flags() -> None:
 
     with pytest.raises(SystemExit):
         desktop.parse_args(["--port", "0"])
+
+
+def test_main_logs_a_launch_failure_and_returns_its_exit_code(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def fail(options: desktop.DesktopOptions) -> int:
+        raise ModelError("the local app did not start")
+
+    stream = io.StringIO()
+    configure_logging(level="INFO", log_format="console", stream=stream)
+    monkeypatch.setattr(desktop, "run_desktop", fail)
+    try:
+        exit_code = desktop.main([])
+    finally:
+        structlog.reset_defaults()
+
+    assert exit_code == ModelError.exit_code
+    assert "the local app did not start" in stream.getvalue()
+    assert capsys.readouterr().err == ""

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import argparse
 import socket
-import sys
 import threading
 import time
 import webbrowser
@@ -22,10 +21,13 @@ from pathlib import Path
 from typing import Any, Protocol
 
 import httpx
+import structlog
 
 from rdv.config.logging import configure_logging
 from rdv.config.settings import Settings
 from rdv.errors import RdvError
+
+logger = structlog.get_logger(__name__)
 
 DEFAULT_HOST = "127.0.0.1"
 """Loopback-only bind address (S14)."""
@@ -334,7 +336,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         return run_desktop(options)
     except RdvError as exc:
-        print(f"error: {exc.message}", file=sys.stderr)
+        logger.error("desktop_launch_failed", error=exc.message)
         return exc.exit_code
     except KeyboardInterrupt:  # pragma: no cover - defensive, handled in serve
         return 0

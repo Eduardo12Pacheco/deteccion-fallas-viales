@@ -251,3 +251,32 @@ def test_main_logs_a_launch_failure_and_returns_its_exit_code(
     assert exit_code == ModelError.exit_code
     assert "the local app did not start" in stream.getvalue()
     assert capsys.readouterr().err == ""
+
+
+class FakeSignalModule:
+    """Records ``signal.signal`` registrations without touching the process."""
+
+    SIGBREAK = 21
+    default_int_handler = object()
+
+    def __init__(self) -> None:
+        self.registered: dict[int, object] = {}
+
+    def signal(self, signum: int, handler: object) -> None:
+        self.registered[signum] = handler
+
+
+def test_windows_ctrl_break_is_turned_into_a_graceful_keyboard_interrupt() -> None:
+    fake = FakeSignalModule()
+
+    desktop.install_ctrl_break_handler(platform="win32", signal_module=fake)
+
+    assert fake.registered == {fake.SIGBREAK: fake.default_int_handler}
+
+
+def test_ctrl_break_handler_is_not_installed_outside_windows() -> None:
+    fake = FakeSignalModule()
+
+    desktop.install_ctrl_break_handler(platform="linux", signal_module=fake)
+
+    assert fake.registered == {}

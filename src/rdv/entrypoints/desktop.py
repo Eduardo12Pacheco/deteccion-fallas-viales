@@ -10,7 +10,9 @@ injectable so the unit tests never bind a real socket or open a browser.
 from __future__ import annotations
 
 import argparse
+import signal
 import socket
+import sys
 import threading
 import time
 import webbrowser
@@ -330,9 +332,24 @@ def parse_args(argv: Sequence[str] | None = None) -> DesktopOptions:
     )
 
 
+def install_ctrl_break_handler(
+    *,
+    platform: str = sys.platform,
+    signal_module: Any = signal,
+) -> None:
+    """Make Windows Ctrl+Break raise ``KeyboardInterrupt`` like Ctrl+C does.
+
+    Python leaves ``SIGBREAK`` at the OS default on Windows, which kills the
+    process before the app's lifespan can delete its temporary directory.
+    """
+    if platform == "win32":
+        signal_module.signal(signal_module.SIGBREAK, signal_module.default_int_handler)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Bundled executable entry point."""
     options = parse_args(argv)
+    install_ctrl_break_handler()
     try:
         return run_desktop(options)
     except RdvError as exc:

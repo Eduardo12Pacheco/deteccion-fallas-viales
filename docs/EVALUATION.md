@@ -1,10 +1,10 @@
-# Evaluation
+# Evaluación
 
-`rdv evaluate` runs a detector over a labeled split, computes COCO-style
-object-detection metrics with the pure-domain engine, and writes one report
-directory. It never uses the test split to tune anything.
+`rdv evaluate` ejecuta un detector sobre un split etiquetado, calcula métricas de detección
+de objetos de estilo COCO con el motor de dominio puro y escribe un directorio de informe.
+Nunca usa el split de test para ajustar nada.
 
-## Command
+## Comando
 
 ```bash
 rdv evaluate \
@@ -15,94 +15,92 @@ rdv evaluate \
   --out reports/v1
 ```
 
-Options:
+Opciones:
 
-| Option | Meaning |
-|--------|---------|
-| `--data DIR` | Dataset root containing `<Country>/train/{images,annotations/xmls}`. |
-| `--splits FILE` | Split manifest; defaults to `<data>/splits.json`. |
-| `--split {val,test,all}` | Labeled split to evaluate (the CLI contract in S7). |
-| `--model ID\|PATH` | Manifest model id or a local single-file ONNX model. |
-| `--out DIR` | Output directory (default `reports/v1`). |
-| `--op-threshold auto\|F` | `auto` selects the F1 optimum on `val`; a number is used as-is. |
-| `--ood DIR` | Optional out-of-domain VOC directory (Norway sample). |
-| `--max-images N` | Evaluate only the first N ids after sorting. |
-| `--device auto\|cpu\|cuda` | Execution device. |
+| Opción | Significado |
+|--------|-------------|
+| `--data DIR` | Raíz del dataset que contiene `<Country>/train/{images,annotations/xmls}`. |
+| `--splits FILE` | Manifiesto de splits; por defecto `<data>/splits.json`. |
+| `--split {val,test,all}` | Split etiquetado a evaluar (el contrato de la CLI en S7). |
+| `--model ID\|PATH` | Id de modelo del manifiesto o un ONNX local de un solo archivo. |
+| `--out DIR` | Directorio de salida (por defecto `reports/v1`). |
+| `--op-threshold auto\|F` | `auto` selecciona el óptimo de F1 en `val`; un número se usa tal cual. |
+| `--ood DIR` | Directorio VOC opcional fuera de dominio (muestra de Noruega). |
+| `--max-images N` | Evalúa solo los primeros N ids después de ordenar. |
+| `--device auto\|cpu\|cuda` | Dispositivo de ejecución. |
 
-Detections are collected at a score cutoff of `0.001` so the metrics engine
-sees the full ranked distribution. The **operating threshold** is separate: it
-is used only for the confusion matrix, the error taxonomy and the gallery.
+Las detecciones se recogen con un corte de puntaje de `0.001` para que el motor de métricas
+vea la distribución completa ordenada por puntaje. El **umbral de operación** es independiente:
+se usa solo para la matriz de confusión, la taxonomía de errores y la galería.
 
-## Threshold policy
+## Política de umbral
 
-The operating threshold is the score that maximises global F1 at IoU 0.5,
-computed by pooling every class and every image of the **validation** split
-(decision D10). The test split is never read during selection; a repository
-spy test enforces that the validation repository is fully consumed before the
-evaluated split is opened. With `--op-threshold F` the validation split is not
-opened at all. Reports record `operating_source` as `val` or `explicit`.
+El umbral de operación es el puntaje que maximiza el F1 global con IoU 0.5, calculado
+agrupando todas las clases y todas las imágenes del split de **validación** (decisión D10).
+El split de test nunca se lee durante la selección; un test espía del repositorio verifica que
+el repositorio de validación se consume por completo antes de abrir el split evaluado. Con
+`--op-threshold F` el split de validación no se abre en absoluto. Los informes registran
+`operating_source` como `val` o `explicit`.
 
-## Metric semantics
+## Semántica de las métricas
 
-- mAP@0.5 and mAP@0.5:0.95 use COCO's 10 IoU thresholds and the 101-point
-  interpolated precision envelope, max 100 detections per image/class.
-- Per-class AP is reported for D00, D10, D20 and D40. A class with no
-  ground-truth boxes in the evaluated split contributes `null` and is excluded
-  from the mean, matching `pycocotools`.
-- Per-country metrics group image ids by their leading token (the country name
-  in RDD2022 ids), so they reuse the same engine unchanged.
-- When `--ood` is given, the same metrics are computed on that independent set
-  and stored under `ood`.
-- Metrics are rounded to six decimals; the JSON is written with sorted keys so
-  two identical runs are byte-identical.
+- mAP@0.5 y mAP@0.5:0.95 usan los 10 umbrales de IoU de COCO y la envolvente de precisión
+  interpolada de 101 puntos, con un máximo de 100 detecciones por imagen y clase.
+- El AP por clase se informa para D00, D10, D20 y D40. Una clase sin cajas de ground truth en
+  el split evaluado aporta `null` y se excluye de la media, igual que en `pycocotools`.
+- Las métricas por país agrupan los ids de imagen por su primer token (el nombre del país en
+  los ids de RDD2022), de modo que reutilizan el mismo motor sin cambios.
+- Cuando se pasa `--ood`, las mismas métricas se calculan sobre ese conjunto independiente y se
+  guardan bajo `ood`.
+- Las métricas se redondean a seis decimales; el JSON se escribe con las claves ordenadas, de
+  modo que dos corridas idénticas producen bytes idénticos.
 
-## Error taxonomy (D10)
+## Taxonomía de errores (D10)
 
-Matching is class-agnostic and greedy by descending score at IoU 0.5. Each
-unmatched prediction with a score at or above the operating threshold becomes:
+El emparejamiento es independiente de la clase y voraz por puntaje descendente con IoU 0.5. Cada
+predicción no emparejada con un puntaje igual o superior al umbral de operación se clasifica como:
 
-| Category | Rule (checked in this order) |
-|----------|------------------------------|
-| `classification` | IoU >= 0.5 with a ground-truth box of another class. |
-| `localization` | `0.1 <= IoU < 0.5` with a same-class ground-truth box. |
-| `duplicate` | IoU >= 0.5 with a same-class box already matched by a higher score. |
-| `background` | Anything else. |
+| Categoría | Regla (se evalúa en este orden) |
+|-----------|---------------------------------|
+| `classification` | IoU >= 0.5 con una caja de ground truth de otra clase. |
+| `localization` | `0.1 <= IoU < 0.5` con una caja de ground truth de la misma clase. |
+| `duplicate` | IoU >= 0.5 con una caja de la misma clase ya emparejada por un puntaje mayor. |
+| `background` | Cualquier otro caso. |
 
-Unmatched ground-truth boxes are counted as `missed`. `error_analysis.json`
-stores the counts and every case with its image id, class, score, box and the
-matched ground-truth box when applicable.
+Las cajas de ground truth no emparejadas se cuentan como `missed`. `error_analysis.json` guarda
+los conteos y cada caso con su id de imagen, clase, puntaje, caja y la caja de ground truth
+emparejada cuando corresponde.
 
-## Artifacts
+## Artefactos
 
-| File | Content |
-|------|---------|
-| `metrics.json` | `rdv.metrics/v1`: model identity, dataset counts, mAP/per-class, operating point, confusion matrix, taxonomy counts, per-country and OOD metrics. |
-| `report.md` | Human-readable report with every table and links to the other artifacts. |
-| `report.html` | Self-contained report: inline CSS, base64 plots and gallery thumbnails, Jinja2 autoescaping. |
-| `pr_curves.png` | Precision-recall curves at IoU 0.5 for the four classes plus the mean. |
-| `pr_curve_<CLS>.csv` | Raw `recall,precision,score` trace per class. |
-| `confusion_matrix.png` / `.csv` | 5x5 matrix with background, at the operating threshold. |
-| `error_analysis.json` | `rdv.error-analysis/v1` taxonomy plus every case. |
-| `gallery/<category>/*.jpg` | Selected worst cases with ground-truth and prediction boxes. |
-| `gallery/index.html` | Gallery index; links only to the images written in the same run. |
+| Archivo | Contenido |
+|---------|-----------|
+| `metrics.json` | `rdv.metrics/v1`: identidad del modelo, conteos del dataset, mAP/por clase, punto de operación, matriz de confusión, conteos de la taxonomía, y métricas por país y OOD. |
+| `report.md` | Informe legible con todas las tablas y enlaces a los demás artefactos. |
+| `report.html` | Informe autocontenido: CSS en línea, gráficos y miniaturas de la galería en base64, autoescape de Jinja2. |
+| `pr_curves.png` | Curvas precisión-recall con IoU 0.5 para las cuatro clases más la media. |
+| `pr_curve_<CLS>.csv` | Traza cruda `recall,precision,score` por clase. |
+| `confusion_matrix.png` / `.csv` | Matriz 5x5 con fondo, en el umbral de operación. |
+| `error_analysis.json` | Taxonomía `rdv.error-analysis/v1` más cada caso. |
+| `gallery/<category>/*.jpg` | Peores casos seleccionados con las cajas de ground truth y de predicción. |
+| `gallery/index.html` | Índice de la galería; solo enlaza las imágenes escritas en la misma corrida. |
 
-## Gallery selection
+## Selección de la galería
 
-False positives are ranked by score, misses by ground-truth area. At most six
-cases per category are kept and the final list is capped at 24. A round-robin
-pass guarantees that every non-empty category is represented before any
-category receives its sixth case, so the gallery never hides an entire error
-type behind the cap. Selection is deterministic: ties break by image id,
-class id and box coordinates.
+Los falsos positivos se ordenan por puntaje y los omitidos por área del ground truth. Se conservan
+como máximo seis casos por categoría y la lista final se limita a 24. Una pasada por turnos
+garantiza que cada categoría no vacía esté representada antes de que alguna reciba su sexto caso,
+de modo que la galería nunca oculte un tipo de error completo detrás del límite. La selección es
+determinista: los empates se resuelven por id de imagen, id de clase y coordenadas de la caja.
 
-## Determinism and limitations
+## Determinismo y limitaciones
 
-- No timestamps or absolute paths are written to `metrics.json`.
-- The metrics engine is verified against `pycocotools` in the `parity` test
-  suite; see `docs/adr/0005-own-metrics-engine.md`.
-- RDD2022 test annotations are not public, so the project evaluates on a seeded
-  block split of the labeled train folders (decision D3). Residual near-dup
-  leakage between blocks is possible and is stated in the dataset docs.
-- Norway is out-of-domain only: it is never trained on, and its images come
-  from different cameras and resolutions.
-- These metrics are research numbers, not a safety-critical certification.
+- No se escriben marcas de tiempo ni rutas absolutas en `metrics.json`.
+- El motor de métricas se verifica contra `pycocotools` en la suite de tests `parity`; ver
+  `docs/adr/0005-own-metrics-engine.md`.
+- Las anotaciones de test de RDD2022 no son públicas, así que el proyecto evalúa sobre un split
+  por bloques con semilla de las carpetas de train etiquetadas (decisión D3). Puede haber fuga
+  residual de casi duplicados entre bloques, y se indica en la documentación del dataset.
+- Noruega es solo fuera de dominio: nunca se usa para entrenar, y sus imágenes provienen de otras
+  cámaras y otras resoluciones.
+- Estas métricas son números de investigación, no una certificación de seguridad crítica.

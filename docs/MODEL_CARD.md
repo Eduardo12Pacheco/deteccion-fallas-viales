@@ -1,233 +1,217 @@
 # Model card — `rdv-rtdetrv2-r18-rdd2022` v1
 
-- **Status:** published artifact, first real fine-tune (T10)
-- **Artifact:** `rdv-rtdetrv2-r18-rdd2022-v1.onnx`, single-file ONNX, opset 17,
-  sha256 `806be021998a850eb074892b0025e7b6361b771fe773378191039af513b9a7de`,
-  80,760,832 bytes
-- **Metrics reference:** [`reports/v1/metrics.json`](../reports/v1/metrics.json)
-- **Code license:** MIT (this repository). **Base weights:** Apache-2.0.
-  **Dataset derivatives:** CC BY-SA 4.0 stance (see
-  [DATA.md](DATA.md)); the license status of the fine-tuned weights themselves
-  is discussed under [Ethical and legal notes](#ethical-and-legal-notes).
+- **Estado:** artefacto publicado, primer ajuste fino real (T10)
+- **Artefacto:** `rdv-rtdetrv2-r18-rdd2022-v1.onnx`, ONNX de un solo archivo, opset 17, sha256
+  `806be021998a850eb074892b0025e7b6361b771fe773378191039af513b9a7de`, 80,760,832 bytes
+- **Referencia de métricas:** [`reports/v1/metrics.json`](../reports/v1/metrics.json)
+- **Licencia del código:** MIT (este repositorio). **Pesos base:** Apache-2.0. **Derivados del dataset:**
+  postura CC BY-SA 4.0 (ver [DATA.md](DATA.md)); el estado de licencia de los propios pesos ajustados se
+  discute en [Notas éticas y legales](#notas-éticas-y-legales).
 
-## Model details
+## Detalles del modelo
 
-| Field | Value |
+| Campo | Valor |
 |---|---|
-| Architecture | RT-DETRv2 R18vd (`RTDetrV2ForObjectDetection`, Hugging Face Transformers 4.57.6) |
-| Base checkpoint | `PekingU/rtdetr_v2_r18vd`, revision `5650961749fa93567c0d46fc7f43ea4f9e914107`, `model.safetensors` sha256 `d18309d0d7ea57048138885c4c6ecfcb1e24506fc6153b94ad484f8ab62c7115` |
-| Base license | Apache-2.0 (Hugging Face model card and API metadata) |
-| Input | RGB, stretched to 640x640, float32 `pixel_values [N,3,640,640]`, range 0-1, no mean/std normalization |
-| Outputs | `logits [N,300,4]` (pre-sigmoid) and `pred_boxes [N,300,4]` (cxcywh normalized to the stretched input) |
-| Classes | `D00` longitudinal crack, `D10` transverse crack, `D20` alligator crack, `D40` pothole (ids 0..3) |
-| Parameters | about 20 M (R18 backbone + RT-DETR encoder/decoder) |
-| Runtime | ONNX Runtime CPU by default; optional PyTorch/CUDA inference inside the training environment |
+| Arquitectura | RT-DETRv2 R18vd (`RTDetrV2ForObjectDetection`, Hugging Face Transformers 4.57.6) |
+| Checkpoint base | `PekingU/rtdetr_v2_r18vd`, revisión `5650961749fa93567c0d46fc7f43ea4f9e914107`, `model.safetensors` sha256 `d18309d0d7ea57048138885c4c6ecfcb1e24506fc6153b94ad484f8ab62c7115` |
+| Licencia base | Apache-2.0 (model card y metadatos de la API de Hugging Face) |
+| Entrada | RGB, estirado a 640x640, `pixel_values [N,3,640,640]` float32, rango 0-1, sin normalización media/desviación |
+| Salidas | `logits [N,300,4]` (antes de sigmoide) y `pred_boxes [N,300,4]` (cxcywh normalizado al lienzo de entrada estirado) |
+| Clases | `D00` grieta longitudinal, `D10` grieta transversal, `D20` grieta de piel de cocodrilo, `D40` bache (ids 0..3) |
+| Parámetros | unos 20 M (backbone R18 + codificador/decodificador RT-DETR) |
+| Runtime | ONNX Runtime CPU por defecto; inferencia opcional PyTorch/CUDA dentro del entorno de entrenamiento |
 
-The ONNX graph was exported from the fine-tuned EMA checkpoint with
-`torch.onnx.export` (legacy TorchScript path, opset 17) and re-saved as a single
-file. A torch-vs-ONNX Runtime parity check on eight validation images measured a
-maximum matched row difference of `3.2e-5` for logits and boxes, below the
-`1e-3` contract. On one of those eight images the exact-score TopK tie ordering
-differs between eager and traced execution; the outputs are a set of 300
-queries, and the bijective row matching confirms the values agree.
+El grafo ONNX se exportó desde el checkpoint EMA ajustado con `torch.onnx.export` (ruta TorchScript
+heredada, opset 17) y se volvió a guardar como un solo archivo. Una comprobación de paridad entre torch y
+ONNX Runtime en ocho imágenes de validación midió una diferencia máxima de filas emparejadas de `3.2e-5`
+para logits y cajas, por debajo del contrato de `1e-3`. En una de esas ocho imágenes, el orden de empate
+del TopK de puntajes exactos difiere entre la ejecución eager y la trazada; las salidas son un conjunto de
+300 consultas, y el emparejamiento biyectivo de filas confirma que los valores coinciden.
 
-## Intended use
+## Uso previsto
 
-- Local, offline demonstration of road-damage detection in still images and
-  video, including the `rdv serve` browser UI and the portable desktop bundle.
-- Research/portfolio use, reproducible evaluation, and a starting point for a
-  domain-specific detector.
-- Interactive exploration: a confidence slider and per-class toggles let a user
-  trade precision for recall without re-running inference.
+- Demostración local y sin conexión de la detección de daños en carretera en imágenes fijas y video,
+  incluidas la interfaz web `rdv serve` y el bundle de escritorio portátil.
+- Uso de investigación/portafolio, evaluación reproducible y punto de partida para un detector de un
+  dominio específico.
+- Exploración interactiva: un deslizador de confianza y los filtros por clase permiten a un usuario
+  intercambiar precisión por exhaustividad sin volver a ejecutar la inferencia.
 
-## Out of scope
+## Fuera de alcance
 
-- Safety-critical, legal, insurance or maintenance-priority decisions. The
-  model is not validated for those uses and must not drive them.
-- Pavement condition indices (PCI/IRI), severity scoring, segmentation,
-  depth/3D reconstruction, GPS mapping or lane-level localisation.
-- Production/vehicle deployment, real-time guarantees, or claims of
-  state-of-the-art accuracy.
-- Imagery from the excluded RDD2022 subsets (United States Google Street View,
-  China Drone/MotorBike) and non-road-damage photography.
+- Decisiones de seguridad crítica, legales, de seguros o de prioridad de mantenimiento. El modelo no está
+  validado para esos usos y no debe guiarlos.
+- Índices de estado del pavimento (PCI/IRI), puntuación de severidad, segmentación, reconstrucción de
+  profundidad o 3D, mapeo GPS o localización a nivel de carril.
+- Despliegue en producción o en vehículos, garantías de tiempo real, o afirmaciones de precisión de estado
+  del arte.
+- Imágenes de los subconjuntos excluidos de RDD2022 (Google Street View de Estados Unidos, China
+  Drone/MotorBike) y fotografía que no sea de daños en carretera.
 
-## Training data
+## Datos de entrenamiento
 
-RDD2022 (CRDDC'2022), Figshare article `21431547`, DOI
-`10.6084/m9.figshare.21431547.v1`. Only the labeled `train/` folders of Japan,
-India and Czech were downloaded (about 1.9 GB via ranged nested-ZIP reads) and
-split with the seeded block rule from D3:
+RDD2022 (CRDDC'2022), artículo de Figshare `21431547`, DOI `10.6084/m9.figshare.21431547.v1`. Solo se
+descargaron las carpetas `train/` etiquetadas de Japón, India y Chequia (unos 1.9 GB mediante lecturas
+por rangos de ZIP anidados) y se dividieron con la regla de bloques con semilla de D3:
 
-| Split | Images | Japan | India | Czech |
+| Split | Imágenes | Japón | India | Chequia |
 |---|---:|---:|---:|---:|
 | train | 16,741 | 8,406 | 6,106 | 2,229 |
 | val | 2,200 | 1,100 | 800 | 300 |
 | test | 2,100 | 1,000 | 800 | 300 |
-| OOD (Norway, never trained) | 1,000 | — | — | — |
+| OOD (Noruega, nunca entrenado) | 1,000 | — | — | — |
 
-- Seed 42, block size 100, ratios 0.8/0.1/0.1 per country (total 21,041).
-- Images with no objects are kept as negatives; labels outside
-  `{D00,D10,D20,D40}` are dropped and counted (`docs/DATA.md`).
-- The official RDD2022 test annotations are not public; the test split above is
-  this project's own held-out split, not the CRDDC challenge test set.
-- The Norway sample is an out-of-domain set only: 3,650x2,044 imagery stretched
-  to 640x640, never used for training or threshold selection.
-- United States data is excluded (Google Street View terms); China
-  Drone/MotorBike are excluded (different sensors/viewpoints).
+- Semilla 42, tamaño de bloque 100, proporciones 0.8/0.1/0.1 por país (total 21,041).
+- Las imágenes sin objetos se conservan como negativos; las etiquetas fuera de `{D00,D10,D20,D40}` se
+  descartan y se cuentan (`docs/DATA.md`).
+- Las anotaciones oficiales de test de RDD2022 no son públicas; el split de test anterior es el split
+  retenido propio de este proyecto, no el test del desafío CRDDC.
+- La muestra de Noruega es solo un conjunto fuera de dominio: imágenes de 3,650x2,044 estiradas a 640x640,
+  nunca usadas para entrenamiento ni para seleccionar el umbral.
+- Los datos de Estados Unidos están excluidos (términos de Google Street View); China Drone/MotorBike están
+  excluidos (sensores y puntos de vista distintos).
 
-The committed mini fixture (`tests/fixtures/rdd2022-mini`, 16 images) and the
-six packaged samples are redistributed under the CC BY-SA 4.0 stance documented
-in [DATA.md](DATA.md).
+El mini fixture versionado (`tests/fixtures/rdd2022-mini`, 16 imágenes) y las seis muestras empaquetadas se
+redistribuyen bajo la postura CC BY-SA 4.0 documentada en [DATA.md](DATA.md).
 
-## Training procedure
+## Procedimiento de entrenamiento
 
-| Setting | Value |
+| Ajuste | Valor |
 |---|---|
-| Epochs | 24 (D16 budget rule; measured `26.01 img/s` in `--benchmark-only`) |
-| Effective batch | 24 = micro-batch 12 x gradient accumulation 2 (`ceil(16/12)`) |
-| Optimizer | AdamW, head lr `1e-4`, backbone lr `1e-5`, weight decay `1e-4` (no decay on norm/bias), grad-clip `0.1` |
-| Schedule | 500-step linear warmup + cosine decay to 1% |
-| Precision | bf16 autocast on CUDA |
-| EMA | `0.9999`, warmup `min(0.9999, (1+t)/(10+t))` |
-| Augmentation | stretch resize 640x640, hflip 0.5, photometric distort 0.5, affine p=0.5 (translate 0.1, scale 0.8-1.2), `SanitizeBoundingBoxes(min_size=2)` |
-| Hardware | NVIDIA GeForce RTX 4060 8 GB, driver 620.70.06, CUDA 13.0 runtime, 12-thread CPU |
-| Peak allocated VRAM | 5.82 GB (auto micro-batch probe cap 7.2 GB; batch 16 did not fit) |
-| Wall clock | 14,660 s (4.07 h) for 24 epochs, including validation |
-| Seeds | 42 (Python, NumPy, torch, DataLoader workers) |
+| Épocas | 24 (regla de presupuesto D16; `26.01 img/s` medidos en `--benchmark-only`) |
+| Batch efectivo | 24 = micro-batch 12 x acumulación de gradiente 2 (`ceil(16/12)`) |
+| Optimizador | AdamW, lr de cabeza `1e-4`, lr de backbone `1e-5`, decaimiento de peso `1e-4` (sin decaimiento en normalización/sesgos), recorte de gradiente `0.1` |
+| Programación | calentamiento lineal de 500 pasos + decaimiento coseno hasta 1 % |
+| Precisión | autocast bf16 en CUDA |
+| EMA | `0.9999`, calentamiento `min(0.9999, (1+t)/(10+t))` |
+| Augmentation | resize estirado a 640x640, hflip 0.5, distorsión fotométrica 0.5, afín p=0.5 (traslación 0.1, escala 0.8-1.2), `SanitizeBoundingBoxes(min_size=2)` |
+| Hardware | NVIDIA GeForce RTX 4060 8 GB, driver 620.70.06, runtime CUDA 13.0, CPU de 12 hilos |
+| VRAM asignada pico | 5.82 GB (tope de la sonda de micro-batch automático 7.2 GB; el batch 16 no cabía) |
+| Tiempo de reloj | 14,660 s (4.07 h) para 24 épocas, incluida la validación |
+| Semillas | 42 (Python, NumPy, torch, workers del DataLoader) |
 
-The run record (git sha, config hash, versions, wall clock, peak memory) is
-committed as [`reports/v1/run.json`](../reports/v1/run.json); the per-epoch log
-is [`reports/v1/epochs.csv`](../reports/v1/epochs.csv). The final artifact is the
-EMA of the last epoch, which scored slightly better on validation than the
-best-by-raw-weights checkpoint (mAP@0.5:0.95 0.1690 vs 0.1661); both were
-measured on the validation split and the better EMA was published.
+El registro de la corrida (git sha, hash de configuración, versiones, tiempo de reloj, memoria pico) está
+versionado como [`reports/v1/run.json`](../reports/v1/run.json); el registro por época es
+[`reports/v1/epochs.csv`](../reports/v1/epochs.csv). El artefacto final es la EMA de la última época, que
+obtuvo en validación un resultado ligeramente mejor que el checkpoint del mejor peso crudo (mAP@0.5:0.95
+0.1690 frente a 0.1661); ambos se midieron en el split de validación y se publicó la EMA mejor.
 
-## Evaluation
+## Evaluación
 
-Held-out in-domain test split (Japan + India + Czech, 2,100 images, 2,469
-ground-truth boxes). COCO-style metrics from the project's numpy engine, 101
-recall points, maxDets 100. The confusion matrix and error taxonomy use the
-operating threshold selected on the validation split, never on test.
+Split de test retenido dentro del dominio (Japón + India + Chequia, 2,100 imágenes, 2,469 cajas de ground
+truth). Métricas de estilo COCO del motor numpy del proyecto, 101 puntos de recall, maxDets 100. La matriz
+de confusión y la taxonomía de errores usan el umbral de operación seleccionado en el split de validación,
+nunca en test.
 
-| Metric | Value |
+| Métrica | Valor |
 |---|---:|
 | mAP@0.5 | **0.3794** |
 | mAP@0.5:0.95 | **0.1696** |
-| AP@0.5 D00 longitudinal crack | 0.3383 |
-| AP@0.5 D10 transverse crack | 0.3089 |
-| AP@0.5 D20 alligator crack | 0.4955 |
-| AP@0.5 D40 pothole | 0.3749 |
-| F1-optimal operating threshold (val) | 0.0216 |
-| Precision / recall at that threshold | 0.425 / 0.448 |
+| AP@0.5 D00 grieta longitudinal | 0.3383 |
+| AP@0.5 D10 grieta transversal | 0.3089 |
+| AP@0.5 D20 grieta de piel de cocodrilo | 0.4955 |
+| AP@0.5 D40 bache | 0.3749 |
+| Umbral de operación óptimo para F1 (val) | 0.0216 |
+| Precisión / recall en ese umbral | 0.425 / 0.448 |
 
-S10 minimum bar (mAP@0.5 >= 0.35, mAP@0.5:0.95 >= 0.15, every class AP@0.5
->= 0.10): **met**; `scripts/render_readme_metrics.py --status` prints
-`PASS (>= min bar)`.
+Barra mínima S10 (mAP@0.5 >= 0.35, mAP@0.5:0.95 >= 0.15, cada clase AP@0.5 >= 0.10): **cumplida**;
+`scripts/render_readme_metrics.py --status` muestra `PASS (>= min bar)`.
 
-### Confidence calibration
+### Calibración de la confianza
 
-The v1 head is under-confident: the score distribution tops out around 0.06 on
-the packaged samples and the F1-optimal validation threshold is 0.0216. A
-"0.25 by convention" default would therefore show no detections at all on the
-demo samples. The manifest's `recommended_score_threshold` is **0.01**, the
-lowest point at which all six packaged samples still produce at least one
-detection; users can move the UI slider up for fewer, more confident boxes.
-No packaged sample reached the T10 margin of 0.15 above the threshold, and
-`reports/v1/sample_expectations.json` records that fact explicitly rather than
-dropping every sample. This is a calibration limitation, not a metrics edit:
-the reported mAP values are ranking-based and unchanged.
+La cabeza v1 tiene confianzas bajas: la distribución de puntajes llega como máximo a unos 0.06 en las
+muestras empaquetadas, y el umbral óptimo para F1 en validación es 0.0216. Un valor por defecto de "0.25 por
+convención" no mostraría ninguna detección en las muestras de demostración. El `recommended_score_threshold`
+del manifiesto es **0.01**, el punto más bajo en el que las seis muestras empaquetadas siguen produciendo al
+menos una detección; los usuarios pueden subir el deslizador de la interfaz para obtener menos cajas, pero
+con más confianza. Ninguna muestra empaquetada alcanzó el margen de 0.15 de T10 por encima del umbral, y
+`reports/v1/sample_expectations.json` registra ese hecho de forma explícita en lugar de descartar todas las
+muestras. Es una limitación de calibración, no una edición de métricas: los valores de mAP informados se
+basan en el ranking y no cambian.
 
-### Per-country test results
+### Resultados por país en test
 
-| Country | Images | mAP@0.5 | mAP@0.5:0.95 |
+| País | Imágenes | mAP@0.5 | mAP@0.5:0.95 |
 |---|---:|---:|---:|
-| Japan | 1,000 | 0.4261 | 0.1994 |
+| Japón | 1,000 | 0.4261 | 0.1994 |
 | India | 800 | 0.2666 | 0.1189 |
-| Czech | 300 | 0.2780 | 0.1014 |
+| Chequia | 300 | 0.2780 | 0.1014 |
 
-India's `D10` AP@0.5 collapses to `0.0002` (Japan carries the global 0.3089),
-and the Czech subset is small; the global number hides this domain gap. The
-full per-class breakdown is in
+El AP@0.5 de `D10` en India cae a `0.0002` (Japón aporta el 0.3089 global), y el subconjunto de Chequia es
+pequeño; el número global oculta esta brecha de dominio. El desglose completo por clase está en
 [`reports/v1/per_country.json`](../reports/v1/per_country.json).
 
-### Out-of-domain (Norway)
+### Fuera de dominio (Noruega)
 
-| Metric | Value |
+| Métrica | Valor |
 |---|---:|
-| Images / boxes | 1,000 / 1,193 |
+| Imágenes / cajas | 1,000 / 1,193 |
 | mAP@0.5 | 0.0588 |
 | mAP@0.5:0.95 | 0.0229 |
 
-The large drop is expected: Norway uses a different camera, resolution and
-road appearance, and was never trained on. The model is not presented as
-geographically general.
+La caída grande es la esperada: Noruega usa otra cámara, otra resolución y otra apariencia de carretera, y
+nunca se entrenó con ella. El modelo no se presenta como geográficamente general.
 
-### Error profile at the operating threshold
+### Perfil de errores en el umbral de operación
 
-| Category | Count |
+| Categoría | Conteo |
 |---|---:|
-| Missed (FN) | 1,441 |
-| Localization (FP) | 378 |
-| Background (FP) | 760 |
-| Duplicate (FP) | 121 |
-| Classification (FP) | 62 |
+| Omitidos (FN) | 1,441 |
+| Localización (FP) | 378 |
+| Fondo (FP) | 760 |
+| Duplicado (FP) | 121 |
+| Clasificación (FP) | 62 |
 
-Twenty-four worst cases (six per category, capped at 24) are committed under
-[`reports/v1/gallery/`](../reports/v1/gallery/) with the taxonomy in
+Los veinticuatro peores casos (seis por categoría, con tope de 24) están versionados en
+[`reports/v1/gallery/`](../reports/v1/gallery/), con la taxonomía en
 [`reports/v1/error_analysis.json`](../reports/v1/error_analysis.json).
 
-## Inference performance
+## Rendimiento de inferencia
 
-Measured by `rdv benchmark` on the artifact (batch 1, 640x640 input, 20 warmup +
-100 timed runs): CPU p50 **156.3 ms** (p95 210.1 ms, 12th Gen Intel i5-12400T,
-ONNX Runtime) and GPU p50 **14.1 ms** (p95 16.1 ms, RTX 4060, torch bf16).
-Synthetic 320x240 video throughput on CPU: **6.09 analyzed frames/s**. Both S11
-sanity gates pass (CPU <= 1500 ms, GPU <= 100 ms). Full hardware and run
-configuration: [`reports/v1/benchmark.json`](../reports/v1/benchmark.json).
+Medido por `rdv benchmark` sobre el artefacto (batch 1, entrada 640x640, 20 pasadas de calentamiento + 100
+pasadas cronometradas): CPU p50 **156.3 ms** (p95 210.1 ms, Intel i5-12400T de 12.ª generación, ONNX
+Runtime) y GPU p50 **14.1 ms** (p95 16.1 ms, RTX 4060, torch bf16). Rendimiento de video sintético de 320x240
+en CPU: **6.09 fotogramas analizados/s**. Ambas compuertas de cordura S11 pasan (CPU <= 1500 ms, GPU <= 100 ms).
+Hardware completo y configuración de la corrida: [`reports/v1/benchmark.json`](../reports/v1/benchmark.json).
 
-## Limitations
+## Limitaciones
 
-- **Not safety-critical.** Accuracy is far from a production inspection tool;
-  missed detections are the dominant error.
-- **Domain shift.** Norway mAP@0.5 is 0.0588; Indian `D10` is near zero on the
-  test split. Do not extrapolate to unseen countries, cameras or resolutions.
-- **Own split, not the official challenge test set.** The official RDD2022 test
-  annotations were never released.
-- **Block-split caveat.** Blocks of consecutive ids reduce but do not eliminate
-  near-duplicate frame leakage between splits.
-- **Crack-type confusion.** Longitudinal and transverse cracks can look alike
-  at 640x640, and the model was not trained on the dropped RDD2022 labels
-  (D43/D44/D50/D01/D11/D0w0).
-- **Video counts are approximate.** Unique instances come from a greedy IoU
-  tracker without ego-motion compensation (D20/ADR 0011).
-- **Coverage ratio is descriptive**, not a severity or PCI score (D21).
-- **Small-model trade-off.** RT-DETRv2 R18 was chosen for an 8 GB GPU and
-  permissive licenses, not for maximum accuracy.
-- **Under-confident scores.** Absolute scores are low (sample maxima <= 0.062),
-  so the recommended threshold is 0.01 rather than a conventional 0.25. Use
-  ranking/relative confidence or recalibrate before any downstream rule that
-  assumes calibrated probabilities.
+- **No es de seguridad crítica.** La precisión está lejos de una herramienta de inspección en producción; los
+  falsos negativos son el error dominante.
+- **Cambio de dominio.** El mAP@0.5 de Noruega es 0.0588; el `D10` de India está cerca de cero en el split de
+  test. No extrapoles a países, cámaras o resoluciones no vistas.
+- **Split propio, no el test oficial del desafío.** Las anotaciones oficiales de test de RDD2022 nunca se
+  publicaron.
+- **Advertencia sobre el split por bloques.** Los bloques de ids consecutivos reducen, pero no eliminan, la
+  fuga de fotogramas casi duplicados entre splits.
+- **Confusión entre tipos de grieta.** Las grietas longitudinales y transversales pueden parecerse a 640x640,
+  y el modelo no se entrenó con las etiquetas de RDD2022 descartadas (D43/D44/D50/D01/D11/D0w0).
+- **Los conteos en video son aproximados.** Las instancias únicas provienen de un tracker IoU voraz sin
+  compensación del movimiento de la cámara (D20/ADR 0011).
+- **La razón de cobertura es descriptiva**, no una puntuación de severidad ni PCI (D21).
+- **Compromiso de modelo pequeño.** RT-DETRv2 R18 se eligió por una GPU de 8 GB y por licencias permisivas, no
+  por máxima precisión.
+- **Confianzas bajas.** Los puntajes absolutos son bajos (máximos de muestra <= 0.062), así que el umbral
+  recomendado es 0.01 y no el 0.25 convencional. Usa el ranking o la confianza relativa, o recalibra antes de
+  cualquier regla posterior que suponga probabilidades calibradas.
 
-## Ethical and legal notes
+## Notas éticas y legales
 
-- Road imagery can contain faces, licence plates and location cues. The
-  packaged samples and fixture images are real road photos; they are included
-  for demonstration only (CC BY-SA 4.0 stance, attribution in
-  [DATA.md](DATA.md)).
-- Predictions must not be used to deny claims, rank repairs or make budget
-  decisions without human inspection.
-- The dataset record says CC BY 4.0 while the paper and some mirrors say
-  CC BY-SA 4.0; this project follows the conservative reading (attribute the
-  authors, redistribute derivative images under CC BY-SA 4.0) and documents the
-  discrepancy instead of resolving it silently.
-- The legal status of generative/model weights derived from CC-licensed images
-  is unsettled. The base weights are Apache-2.0; the fine-tuned weights are
-  distributed for portfolio/demo use with this caveat, not with a claim of
-  clean title.
+- Las imágenes de carretera pueden contener rostros, placas de matrícula e indicios de ubicación. Las muestras
+  empaquetadas y las imágenes del fixture son fotos reales de carretera; se incluyen solo con fines de
+  demostración (postura CC BY-SA 4.0, atribución en [DATA.md](DATA.md)).
+- Las predicciones no deben usarse para negar reclamaciones, priorizar reparaciones ni tomar decisiones
+  presupuestarias sin inspección humana.
+- El registro del dataset dice CC BY 4.0 mientras el paper y algunos mirrors dicen CC BY-SA 4.0; este proyecto
+  sigue la lectura conservadora (atribuir a los autores y redistribuir las imágenes derivadas bajo CC BY-SA
+  4.0) y documenta la discrepancia en lugar de resolverla en silencio.
+- La situación legal de los pesos generativos o de modelo derivados de imágenes con licencia CC no está
+  resuelta. Los pesos base son Apache-2.0; los pesos ajustados se distribuyen con fines de portafolio y
+  demostración con esta advertencia, sin afirmar una titularidad limpia.
 
-## Citation
+## Cita
 
-If you use the data or the base architecture, cite:
+Si usas los datos o la arquitectura base, cita:
 
 - Arya, D., Maeda, H., Ghosh, S. K., Toshniwal, D., Sekimoto, Y. (2022).
   RDD2022: A multi-national image dataset for automatic road damage detection.

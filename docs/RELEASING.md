@@ -1,53 +1,53 @@
-# Releasing road-damage-vision
+# Publicar road-damage-vision
 
-This project ships two independent release channels (decision D22):
+Este proyecto publica dos canales de release independientes (decisión D22):
 
-| Channel | Tag | Assets | Purpose |
-|---------|-----|--------|---------|
-| Model weights | `models-v1` | `rdv-rtdetrv2-r18-rdd2022-v1.onnx` | Pinned ONNX file downloaded by `rdv models pull` and embedded in desktop bundles |
-| Application | `v0.1.0` | wheel, sdist, three desktop bundles, `SHA256SUMS`, provenance attestations | CLI (L1) and portable desktop app (L3) |
+| Canal | Tag | Assets | Propósito |
+|-------|-----|--------|-----------|
+| Pesos del modelo | `models-v1` | `rdv-rtdetrv2-r18-rdd2022-v1.onnx` | Archivo ONNX fijado que descarga `rdv models pull` y que se embebe en los bundles de escritorio |
+| Aplicación | `v0.1.0` | wheel, sdist, tres bundles de escritorio, `SHA256SUMS`, atestaciones de procedencia | CLI (L1) y aplicación de escritorio portátil (L3) |
 
-The weights release is created **once** (the v1 asset was published in T10)
-and is never rebuilt by the tag workflow. The tag workflow downloads it with
-`gh release download`, verifies its sha256 against
-`src/rdv/assets/models.json`, embeds it in every bundle and re-uses the same
-digest in the post-release smoke. If the two digests disagree, the workflow
-stops before publishing anything.
+El release de los pesos se crea **una sola vez** (el asset v1 se publicó en T10) y el
+workflow de tags nunca lo reconstruye. El workflow de tags lo descarga con
+`gh release download`, verifica su sha256 contra `src/rdv/assets/models.json`, lo embebe
+en cada bundle y reutiliza el mismo digest en el smoke posterior al release. Si los dos
+digests no coinciden, el workflow se detiene antes de publicar nada.
 
-## Before the first release
+## Antes del primer release
 
-1. Confirm that the remote is reachable and CI is green on `main`.
-2. Confirm the weights release exists. It is published once per model version;
-   re-run the script only if `models-v1` is missing or the asset is corrupt:
+1. Confirma que el remoto es accesible y que CI está en verde en `main`.
+2. Confirma que existe el release de los pesos. Se publica una vez por versión del modelo;
+   vuelve a ejecutar el script solo si falta `models-v1` o si el asset está corrupto:
 
    ```bash
    bash scripts/publish_model.sh
    ```
 
-   The script refuses an artifact whose sha256 or size differs from the
-   manifest. Without this release the bundle jobs and `rdv models pull` fail.
-3. Confirm the manifest pins a complete entry:
+   El script rechaza un artefacto cuyo sha256 o tamaño no coincide con el manifiesto. Sin
+   este release fallan los jobs de bundles y `rdv models pull`.
+3. Confirma que el manifiesto fija una entrada completa:
 
    ```bash
    uv run python scripts/ci/verify_release_inputs.py v0.1.0
    ```
 
-## Release order
+## Orden del release
 
-The first `v0.1.0` tag is created only after the first fully green CI run on
-`main` and the `models-v1` asset both exist; the workflow cannot start on a
-runner whose account cannot run Actions.
+El primer tag `v0.1.0` se crea solo después de la primera ejecución de CI completamente en
+verde sobre `main` y de que existan tanto el asset `models-v1` como el propio tag; el
+workflow no puede arrancar en un runner cuya cuenta no pueda ejecutar Actions.
 
-1. **Bump the version** in `pyproject.toml` (and refresh `uv.lock` only if a
-   dependency changed).
-2. **Regenerate the changelog** from Conventional Commits:
+1. **Sube la versión** en `pyproject.toml` (y actualiza `uv.lock` solo si cambió una
+   dependencia).
+2. **Regenera el changelog** a partir de Conventional Commits:
 
    ```bash
    uvx git-cliff@2.14.2 --tag v0.1.0 -o CHANGELOG.md
    ```
 
-   Inspect the section; commit it with the version bump.
-3. **Run the local preflight** (the same checks the workflow runs):
+   Revisa la sección y confírmala junto con el cambio de versión.
+3. **Ejecuta la verificación local previa** (las mismas comprobaciones que ejecuta el
+   workflow):
 
    ```bash
    uv lock --check
@@ -59,41 +59,41 @@ runner whose account cannot run Actions.
    uvx git-cliff@2.14.2 --tag v0.1.0 --unreleased > /dev/null
    ```
 
-4. **Tag and push** the annotated tag. Pushing the tag is what starts
-   `.github/workflows/release.yml`; the tag must equal `v` + the
-   `pyproject.toml` version or the `verify` job fails before building.
+4. **Crea el tag y súbelo** como tag anotado. Subir el tag es lo que inicia
+   `.github/workflows/release.yml`; el tag debe ser igual a `v` + la versión de
+   `pyproject.toml`, o el job `verify` falla antes de construir.
 
    ```bash
    git tag -a v0.1.0 -m "road-damage-vision 0.1.0"
    git push origin v0.1.0
    ```
 
-5. **Watch the workflow**:
+5. **Sigue el workflow**:
 
    ```bash
    gh run list --workflow release.yml --limit 3
    gh run watch <run-id> --exit-status
    ```
 
-## What the workflow does
+## Qué hace el workflow
 
-| Job | Result |
-|-----|--------|
-| `verify` | Tag equals the project version; at least one model pins a 64-character sha256, size, URL, threshold and license |
-| `dist` | `uv build` produces the wheel and sdist; `twine check` validates both |
-| `bundles` | Matrix `ubuntu-24.04` → `linux-x64`, `windows-latest` → `windows-x64`, `macos-latest` → `macos-arm64`; downloads and verifies `models-v1`, builds the PyInstaller onedir bundle, runs `scripts/smoke_bundle.py`, stages `RoadDamageVision-<version>-<platform>.{tar.gz,zip}` |
-| `release` | Generates notes with `git-cliff --latest --strip header`, computes `SHA256SUMS`, attests provenance for every asset, publishes the release |
-| `post-release-smoke` | Installs the published wheel with `uv tool install`, pulls the real model (`rdv models pull` verifies sha256), runs `scripts/smoke_release.py` against `reports/v1/sample_expectations.json` |
+| Job | Resultado |
+|-----|-----------|
+| `verify` | El tag es igual a la versión del proyecto; al menos un modelo fija un sha256 de 64 caracteres, tamaño, URL, umbral y licencia |
+| `dist` | `uv build` produce la wheel y el sdist; `twine check` valida ambos |
+| `bundles` | Matriz `ubuntu-24.04` → `linux-x64`, `windows-latest` → `windows-x64`, `macos-latest` → `macos-arm64`; descarga y verifica `models-v1`, construye el bundle onedir de PyInstaller, ejecuta `scripts/smoke_bundle.py` y prepara `RoadDamageVision-<version>-<plataforma>.{tar.gz,zip}` |
+| `release` | Genera las notas con `git-cliff --latest --strip header`, calcula `SHA256SUMS`, atestigua la procedencia de cada asset y publica el release |
+| `post-release-smoke` | Instala la wheel publicada con `uv tool install`, descarga el modelo real (`rdv models pull` verifica el sha256) y ejecuta `scripts/smoke_release.py` contra `reports/v1/sample_expectations.json` |
 
-The post-release smoke requires every expected class to be present with a
-score at or above the pinned threshold. The current `sample_expectations.json`
-records `margin_ok: false` for all six samples because the v1 head is
-under-confident; the smoke therefore asserts class presence and threshold, not
-the 0.15 margin described in `docs/MODEL_CARD.md`.
+El smoke posterior al release exige que cada clase esperada esté presente con un puntaje
+igual o superior al umbral fijado. El `sample_expectations.json` actual registra
+`margin_ok: false` para las seis muestras porque la cabeza v1 tiene confianzas bajas; por
+eso el smoke verifica la presencia de clases y el umbral, no el margen de 0.15 descrito en
+`docs/MODEL_CARD.md`.
 
-## Verify a download
+## Verificar una descarga
 
-Users can verify the exact bytes they downloaded:
+Los usuarios pueden verificar los bytes exactos que descargaron:
 
 ```bash
 sha256sum -c SHA256SUMS
@@ -101,45 +101,46 @@ gh attestation verify road_damage_vision-0.1.0-py3-none-any.whl \
   --repo Eduardo12Pacheco/deteccion-fallas-viales
 ```
 
-On Windows, use `Get-FileHash -Algorithm SHA256 <file>` and compare with the
-matching line in `SHA256SUMS`.
+En Windows, usa `Get-FileHash -Algorithm SHA256 <archivo>` y compara con la línea
+correspondiente de `SHA256SUMS`.
 
-The desktop archives are **unsigned**. macOS blocks them with Gatekeeper until
-the user allows the app in *System Settings → Privacy & Security*, and Windows
-shows SmartScreen until the user chooses *More info → Run anyway*. The Linux
-bundle requires glibc 2.39 or newer because it is built on Ubuntu 24.04.
+Los archivos de los bundles de escritorio **no están firmados**. macOS los bloquea con
+Gatekeeper hasta que el usuario permita la aplicación en *Ajustes del Sistema → Privacidad
+y seguridad*, y Windows muestra SmartScreen hasta que el usuario elija *Más información →
+Ejecutar de todas formas*. El bundle de Linux requiere glibc 2.39 o posterior porque se
+construye sobre Ubuntu 24.04.
 
 ## Rollback
 
-- Never move or reuse a published tag: releases are append-only.
-- If an asset is wrong, publish a patch version (`v0.1.1`). As an emergency
-  measure an owner may delete the GitHub Release and its tag, but the tag must
-  not be recreated; the next attempt gets a new version number.
-- If the weights asset is corrupt, re-upload it only if the manifest sha256 is
-  unchanged (`scripts/publish_model.sh` is idempotent and checks the digest).
-  A new model needs a new `version` in the manifest and a new `models-v2`
-  release, plus a bundle rebuild.
-- If the post-release smoke fails, fix forward with a patch release; do not
-  edit `reports/v1/sample_expectations.json` to make the smoke pass (decision
-  D17 keeps published numbers unchanged).
+- Nunca muevas ni reutilices un tag publicado: los releases son solo de adición.
+- Si un asset está mal, publica una versión de parche (`v0.1.1`). Como medida de emergencia,
+  un responsable puede eliminar el GitHub Release y su tag, pero el tag no debe recrearse;
+  el siguiente intento recibe un nuevo número de versión.
+- Si el asset de los pesos está corrupto, vuelve a subirlo solo si el sha256 del manifiesto
+  no cambió (`scripts/publish_model.sh` es idempotente y verifica el digest). Un modelo nuevo
+  necesita una nueva `version` en el manifiesto y un release `models-v2`, además de
+  reconstruir los bundles.
+- Si falla el smoke posterior al release, corrige hacia adelante con un release de parche; no
+  edites `reports/v1/sample_expectations.json` para que el smoke pase (la decisión D17
+  mantiene sin cambios los números publicados).
 
-## Private-repository note
+## Nota sobre el repositorio privado
 
-The repository is private, so release assets need authentication. `gh` uses
-`GH_TOKEN`/`GITHUB_TOKEN` automatically. `rdv models pull` also accepts either
-variable and resolves the release asset through the GitHub API; without a token
-the download fails with a clear message instead of an anonymous 404. The
-post-release smoke therefore exports `GITHUB_TOKEN` for the pull step.
+El repositorio es privado, así que los assets de release requieren autenticación. `gh` usa
+`GH_TOKEN`/`GITHUB_TOKEN` automáticamente. `rdv models pull` también acepta cualquiera de
+las dos variables y resuelve el asset del release mediante la API de GitHub; sin token, la
+descarga falla con un mensaje claro en lugar de un 404 anónimo. Por eso el smoke posterior
+al release exporta `GITHUB_TOKEN` para el paso de descarga.
 
-## Troubleshooting
+## Solución de problemas
 
-- `tag vX does not match pyproject version Y`: bump `pyproject.toml`, commit,
-  delete the local tag with `git tag -d vX`, and tag the corrected commit.
-- `model asset ... does not match the manifest`: `models-v1` was rebuilt or the
-  manifest digest changed. Re-run `scripts/publish_model.sh` from the artifact
-  that matches the committed manifest.
-- Bundle smoke timeout: inspect the failing job log; the script prints the last
-  30 lines of the launcher log and enforces a 90 s health timeout.
-- Release job cannot attest: check that the workflow kept
-  `id-token: write` and `attestations: write`; both are required by
+- `tag vX does not match pyproject version Y`: sube la versión en `pyproject.toml`, confírmala,
+  elimina el tag local con `git tag -d vX` y crea el tag sobre el commit corregido.
+- `model asset ... does not match the manifest`: `models-v1` se reconstruyó o cambió el digest
+  del manifiesto. Vuelve a ejecutar `scripts/publish_model.sh` desde el artefacto que coincide
+  con el manifiesto versionado.
+- Timeout del smoke del bundle: revisa el log del job que falla; el script muestra las últimas
+  30 líneas del log del lanzador y aplica un timeout de 90 s para la verificación de salud.
+- El job de release no puede atestiguar: comprueba que el workflow conserve
+  `id-token: write` y `attestations: write`; ambos son obligatorios para
   `actions/attest-build-provenance`.

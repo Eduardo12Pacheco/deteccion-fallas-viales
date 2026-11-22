@@ -4,7 +4,7 @@
     {
       "id": "rdv-rtdetrv2-r18-rdd2022",
       "version": "v1",
-      "url": "https://github.com/Eduardo12Pacheco/road-damage-vision/releases/download/models-v1/rdv-rtdetrv2-r18-rdd2022-v1.onnx",
+      "url": "https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/releases/download/models-v1/rdv-rtdetrv2-r18-rdd2022-v1.onnx",
       "sha256": "806be021998a850eb074892b0025e7b6361b771fe773378191039af513b9a7de",
       "size": 80760832,
       "classes": [

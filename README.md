@@ -1,11 +1,11 @@
-# road-damage-vision
+# deteccion-fallas-viales
 
 Detect road damage — longitudinal, transverse and alligator cracks plus potholes — in images and video with a reproducible RT-DETRv2 fine-tune, a torch-free ONNX Runtime path and a finished local web app.
 
-[![CI](https://github.com/Eduardo12Pacheco/road-damage-vision/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Eduardo12Pacheco/road-damage-vision/actions/workflows/ci.yml)
+[![CI](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml)
-[![Latest release](https://img.shields.io/github/v/release/Eduardo12Pacheco/road-damage-vision)](https://github.com/Eduardo12Pacheco/road-damage-vision/releases)
+[![Latest release](https://img.shields.io/github/v/release/Eduardo12Pacheco/deteccion-fallas-viales)](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/releases)
 
 ![The local web app detecting road damage in a sample image](docs/assets/demo.gif)
 
@@ -39,14 +39,14 @@ Hexagonal ports and adapters with the dependency direction enforced by `lint-imp
 Requirements: [uv](https://docs.astral.sh/uv/) (it provisions Python 3.12). The same three commands work on Linux, macOS and Windows (bash or PowerShell).
 
 ```bash
-uv tool install https://github.com/Eduardo12Pacheco/road-damage-vision/releases/download/v0.1.0/road_damage_vision-0.1.0-py3-none-any.whl
+uv tool install https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/releases/download/v0.1.0/road_damage_vision-0.1.0-py3-none-any.whl
 rdv models pull
 rdv serve
 ```
 
 Open <http://127.0.0.1:16080>, drop an image or video, and adjust confidence/classes live. For a headless batch instead of the app, replace the last command with `rdv samples --dest samples && rdv detect samples/*.jpg --out detections`.
 
-Prefer no Python? Download `RoadDamageVision-0.1.0-<platform>` from [Releases](https://github.com/Eduardo12Pacheco/road-damage-vision/releases), unpack it and run `RoadDamageVision`; the model is embedded and the app works offline. While the repository is private, authenticate with `gh auth login` and fetch assets with `gh release download`; the same commands then work with the downloaded wheel.
+Prefer no Python? Download `RoadDamageVision-0.1.0-<platform>` from [Releases](https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/releases), unpack it and run `RoadDamageVision`; the model is embedded and the app works offline. While the repository is private, authenticate with `gh auth login` and fetch assets with `gh release download`; the same commands then work with the downloaded wheel.
 
 ## Results
 

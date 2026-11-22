@@ -98,7 +98,7 @@ Users can verify the exact bytes they downloaded:
 ```bash
 sha256sum -c SHA256SUMS
 gh attestation verify road_damage_vision-0.1.0-py3-none-any.whl \
-  --repo Eduardo12Pacheco/road-damage-vision
+  --repo Eduardo12Pacheco/deteccion-fallas-viales
 ```
 
 On Windows, use `Get-FileHash -Algorithm SHA256 <file>` and compare with the

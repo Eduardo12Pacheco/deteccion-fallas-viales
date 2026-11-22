@@ -26,7 +26,7 @@ def _manifest(**overrides: object) -> dict[str, object]:
         "id": "rdv-test-model",
         "version": "v1",
         "url": (
-            "https://github.com/Eduardo12Pacheco/road-damage-vision/"
+            "https://github.com/Eduardo12Pacheco/deteccion-fallas-viales/"
             "releases/download/models-v1/rdv-test-model-v1.onnx"
         ),
         "sha256": "a" * 64,

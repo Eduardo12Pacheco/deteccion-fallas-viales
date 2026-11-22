@@ -27,6 +27,15 @@ from rdv.entrypoints import desktop
 
 FORBIDDEN_DIRECTORIES = frozenset({"torch", "torchvision", "transformers", "scipy", "matplotlib"})
 MAX_BUNDLE_BYTES = 250 * 1024 * 1024
+# Windows reports a process that exits on CTRL_BREAK/CTRL_C as STATUS_CONTROL_C_EXIT.
+WINDOWS_CONTROL_C_EXIT = 0xC000013A
+
+
+def is_clean_exit(code: int, platform: str = sys.platform) -> bool:
+    """Return whether ``code`` is a clean shutdown after Ctrl+C on ``platform``."""
+    if code == 0:
+        return True
+    return platform == "win32" and code == WINDOWS_CONTROL_C_EXIT
 
 
 def _fail(message: str) -> None:
@@ -188,7 +197,7 @@ def run_smoke(bundle: Path, *, timeout_s: float = 90.0, analysis_timeout_s: floa
         finally:
             code = _stop(process, 30.0)
 
-        if code != 0:
+        if not is_clean_exit(code):
             _fail(f"bundle exited with code {code} after Ctrl+C\n" + _tail(log_path))
         leftovers = sorted(temp_root.glob("rdv-web-*"))
         if leftovers:

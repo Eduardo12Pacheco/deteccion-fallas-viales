@@ -6,7 +6,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 .PHONY: help setup lint lint-web lock-check imports types test test-base test-full \
-	fixtures data train eval serve build docs ci-build ci-installer ci-local
+	fixtures data train eval reproduce serve build docs ci-build ci-installer ci-local
 
 help: ## Show the available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -54,6 +54,13 @@ train: ## Fine-tune the detector from the pinned configuration
 
 eval: ## Evaluate the exported model on the held-out test split
 	$(UV) run rdv evaluate --data "$${RDV_DATA_DIR}/rdd2022" --splits "$${RDV_DATA_DIR}/rdd2022/splits.json" --split test --out reports/v1
+
+reproduce: ## Re-run the documented data preparation and evaluation (D23, docs/TRAINING.md)
+	RDV_DATA_DIR=data $(UV) run rdv data download --countries Japan India Czech
+	RDV_DATA_DIR=data $(UV) run rdv data download --ood-norway 1000
+	RDV_DATA_DIR=data $(UV) run rdv data verify
+	RDV_DATA_DIR=data $(UV) run rdv data prepare
+	RDV_DATA_DIR=data $(UV) run rdv evaluate --data data/rdd2022 --splits data/rdd2022/splits.json --split test --model artifacts/rdv-rtdetrv2-r18-rdd2022-v1.onnx --op-threshold auto --ood data/rdd2022-ood-norway --out reports/v1
 
 serve: ## Start the local web app
 	$(UV) run rdv serve

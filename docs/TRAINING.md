@@ -82,6 +82,12 @@ RDV_REAL_CHECKPOINT=runs/v1/selected RDV_DATA_DIR=data \
   uv run pytest -m realmodel -q
 ```
 
+`make reproduce` runs the Data steps and the `rdv evaluate` command above in that
+order, with `RDV_DATA_DIR=data`. It does not train or export: the ONNX file under
+`artifacts/` must already exist (written by `rdv export`). It downloads the
+country archives (about 2 GB) and overwrites the tracked `reports/v1`, so review
+the result with `git diff` before committing anything.
+
 ## Measured run (v1)
 
 | Field | Value |

@@ -45,6 +45,13 @@ opt-in extras:
 - The import-linter contract forbids `torch`, `torchvision`, `transformers`
   and `scipy` everywhere except `rdv.adapters.training`, so the boundary is
   enforced by a test and not by convention.
+- The one named exception is lazy loading. `rdv.composition` (the CUDA probe and
+  the optional GPU detector factory) and `rdv.adapters.inference.torch_detector`
+  may name `torch`, `torchvision` or `transformers` only through `importlib`.
+  import-linter cannot see importlib calls, so
+  `tests/unit/test_architecture.py::test_torch_stack_is_loaded_only_by_allowed_modules`
+  scans every module's AST and fails on any other static import, or literal
+  `importlib.import_module` / `__import__` call, of those packages.
 - The T9 `TorchDetector` lives in `rdv.adapters.inference` (the plan's module
   tree) but imports the optional stack through `importlib` at construction
   time, so the static-import contract stays valid; without the extra it raises

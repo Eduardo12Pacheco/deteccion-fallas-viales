@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="hero-title hero-desc">
+  <title id="hero-title">Detección de fallas viales</title>
+  <desc id="hero-desc">Portada de deteccion-fallas-viales. A la izquierda, el nombre del proyecto y su propuesta. A la derecha, una superficie de carretera ilustrativa con cuatro daños marcados con los códigos de clase del modelo: D00 grieta longitudinal, D10 grieta transversal, D20 piel de cocodrilo y D40 bache.</desc>
+
+  <rect width="1200" height="420" rx="28" fill="#0c1118"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+    <text x="72" y="120" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="20" letter-spacing="2" fill="#7cc0ff">VISIÓN POR COMPUTADORA · RT-DETRv2 · ONNX</text>
+    <text x="72" y="212" font-size="80" font-weight="700" fill="#f1f5f9">Detección de</text>
+    <text x="72" y="298" font-size="80" font-weight="700" fill="#f1f5f9">fallas viales</text>
+    <text x="72" y="352" font-size="24" fill="#b6c2cf">Grietas y baches en fotos y video.</text>
+    <text x="72" y="392" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="20" fill="#b6c2cf">deteccion-fallas-viales · MIT · Python 3.12</text>
+  </g>
+
+  <rect x="668" y="64" width="468" height="328" rx="18" fill="#141b24" stroke="#2b3644" stroke-width="2"/>
+
+  <g fill="none" stroke="#8fa0b3" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M744 116 C738 150 752 170 746 200 S736 250 752 300 L746 316"/>
+    <path d="M826 132 L862 126 L900 138 L940 128 L978 140 L1016 130 L1046 136"/>
+    <path d="M830 226 L856 218 L872 240 L898 232 L912 258 L886 270 L862 262 L840 280"/>
+    <path d="M920 220 L944 232 L938 256 L966 262 L980 290"/>
+    <path d="M850 300 L874 292 L900 306 L926 298 L952 314 L978 306"/>
+    <path d="M868 250 L884 280 L866 300"/>
+    <path d="M1036 262 C1036 246 1058 240 1072 244 C1092 248 1108 258 1106 276 C1104 296 1082 306 1064 304 C1046 302 1036 286 1036 262 Z" fill="#0c1118"/>
+  </g>
+
+  <g fill="none" stroke-width="4" stroke-linecap="square">
+    <path d="M698 114V96H716 M776 96H794V114 M794 306V324H776 M716 324H698V306" stroke="#0072b2"/>
+    <path d="M812 118V100H830 M1042 100H1060V118 M1060 146V164H1042 M830 164H812V146" stroke="#e69f00"/>
+    <path d="M812 214V196H830 M990 196H1008V214 M1008 310V328H990 M830 328H812V310" stroke="#cc79a7"/>
+    <path d="M1024 254V236H1042 M1102 236H1120V254 M1120 302V320H1102 M1042 320H1024V302" stroke="#d55e00"/>
+  </g>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="20" font-weight="700">
+    <rect x="698" y="68" width="64" height="26" rx="4" fill="#0072b2"/>
+    <text x="710" y="87" fill="#ffffff">D00</text>
+    <rect x="812" y="72" width="64" height="26" rx="4" fill="#e69f00"/>
+    <text x="824" y="91" fill="#0c1118">D10</text>
+    <rect x="812" y="168" width="64" height="26" rx="4" fill="#cc79a7"/>
+    <text x="824" y="187" fill="#0c1118">D20</text>
+    <rect x="1024" y="208" width="64" height="26" rx="4" fill="#d55e00"/>
+    <text x="1036" y="227" fill="#0c1118">D40</text>
+  </g>
+
+  <text x="692" y="372" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" fill="#b6c2cf">Clases: D00 · D10 · D20 · D40</text>
+</svg>

@@ -8,7 +8,12 @@ excluded explicitly, which keeps the tiny-model bundle well under 250 MB.
 
 import importlib.util
 import os
+import sys
 from pathlib import Path
+
+# GNU strip (shipped on the Windows runners by Git for Windows) corrupts PE DLLs:
+# the bundled python312.dll then fails to load. Symbols are only stripped elsewhere.
+STRIP = sys.platform != "win32"
 
 ROOT = Path(SPECPATH).resolve().parent
 SRC = ROOT / "src"
@@ -91,7 +96,7 @@ exe = EXE(
     name="RoadDamageVision",
     debug=False,
     bootloader_ignore_signals=False,
-    strip=True,
+    strip=STRIP,
     upx=True,
     console=True,
     disable_windowed_traceback=False,
@@ -101,7 +106,7 @@ bundle = COLLECT(
     exe,
     analysis.binaries,
     analysis.datas,
-    strip=True,
+    strip=STRIP,
     upx=True,
     name="RoadDamageVision",
 )

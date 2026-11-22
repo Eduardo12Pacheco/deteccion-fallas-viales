@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import re
+import signal
 import socket
 import subprocess
 import sys
@@ -17,6 +19,7 @@ from rdv.entrypoints.cli.app import app
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TINY_MODEL = REPO_ROOT / "tests" / "fixtures" / "models" / "tiny-detector.onnx"
+ANSI_SGR = re.compile(r"\x1b\[[0-9;]*m")
 runner = CliRunner()
 
 
@@ -36,8 +39,10 @@ def _free_local_port() -> int:
 def test_serve_help_exposes_the_local_server_options() -> None:
     result = runner.invoke(app, ["serve", "--help"], env={"COLUMNS": "120"})
     assert result.exit_code == 0, result.output
+    # Rich forces colour in CI, which splits "--host" into styled segments.
+    plain = ANSI_SGR.sub("", result.output)
     for option in ("--host", "--port", "--no-browser", "--model"):
-        assert option in result.output
+        assert option in plain
 
 
 @pytest.mark.enable_socket
@@ -66,6 +71,7 @@ def test_serve_process_answers_health_rejects_foreign_hosts_and_cleans_up(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0,
     )
     base = f"http://127.0.0.1:{port}"
     try:
@@ -87,10 +93,23 @@ def test_serve_process_answers_health_rejects_foreign_hosts_and_cleans_up(
         assert evil.status_code == 421
         assert not any(name.lower().startswith("access-control-") for name in evil.headers)
     finally:
-        process.terminate()
+        _request_graceful_shutdown(process)
         stdout, stderr = process.communicate(timeout=20)
     assert process.returncode is not None
     assert not list(temp_root.glob("rdv-web-*")), (stdout, stderr)
+
+
+def _request_graceful_shutdown(process: subprocess.Popen[str]) -> None:
+    """Stop the server through uvicorn's signal handlers so its lifespan removes the temp dir.
+
+    On Windows ``terminate`` is ``TerminateProcess``, which skips every handler;
+    uvicorn listens for ``SIGBREAK`` there, delivered as ``CTRL_BREAK_EVENT`` to the
+    new process group created at spawn.
+    """
+    if sys.platform == "win32":
+        process.send_signal(signal.CTRL_BREAK_EVENT)
+    else:
+        process.send_signal(signal.SIGTERM)
 
 
 def _process_output(process: subprocess.Popen[str]) -> str:

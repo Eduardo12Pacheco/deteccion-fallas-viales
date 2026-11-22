@@ -90,7 +90,7 @@ def test_per_country_block_split_is_used(dataset_root: Path, tmp_path: Path) -> 
     manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
 
     japan_ids = sorted(
-        str(path.relative_to(dataset_root))
+        path.relative_to(dataset_root).as_posix()
         for path in (dataset_root / "Japan" / "train" / "images").glob("*.jpg")
     )
     expected = block_split(japan_ids, seed=42, block_size=10, ratios=RATIOS)

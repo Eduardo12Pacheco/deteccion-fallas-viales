@@ -19,6 +19,10 @@ from rdv.entrypoints.web.app import create_app
 from rdv.errors import ModelError
 from tests.support.synthetic_video import write_moving_rectangle_video
 
+# TestClient runs an anyio event loop; the Windows proactor loop opens a socketpair
+# that pytest-socket would block. The app itself never leaves loopback in these tests.
+pytestmark = pytest.mark.enable_socket
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TINY_MODEL = REPO_ROOT / "tests" / "fixtures" / "models" / "tiny-detector.onnx"
 MINI = REPO_ROOT / "tests" / "fixtures" / "rdd2022-mini"

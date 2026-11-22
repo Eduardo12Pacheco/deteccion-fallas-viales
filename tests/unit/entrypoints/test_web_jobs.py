@@ -116,7 +116,7 @@ def test_processor_failure_marks_the_job_as_error_and_hides_the_temp_path(tmp_pa
         failed = manager.get(job.id)
         assert failed is not None
         assert failed.error is not None
-        assert "<upload>/source" in failed.error
+        assert str(Path("<upload>") / "source") in failed.error
         assert str(manager.work_dir) not in failed.error
     finally:
         manager.close()

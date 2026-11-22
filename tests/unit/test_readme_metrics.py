@@ -31,10 +31,10 @@ def _metrics_block(name: str) -> str:
 
 
 def test_both_readmes_have_the_same_generated_metrics_block() -> None:
-    english = _metrics_block("README.md")
-    spanish = _metrics_block("README.es.md")
+    spanish = _metrics_block("README.md")
+    english = _metrics_block("README.en.md")
 
-    assert english == spanish, "README.md and README.es.md metrics must be generated together"
+    assert spanish == english, "README.md and README.en.md metrics must be generated together"
     result = subprocess.run(
         [sys.executable, str(RENDERER), "--check"],
         cwd=ROOT,
@@ -46,7 +46,7 @@ def test_both_readmes_have_the_same_generated_metrics_block() -> None:
 
 
 def test_readme_stays_within_the_length_budget() -> None:
-    for name in ("README.md", "README.es.md"):
+    for name in ("README.md", "README.en.md"):
         lines = _readme(name).read_text(encoding="utf-8").splitlines()
         assert len(lines) <= 150, f"{name} has {len(lines)} lines (S19 limit is 150)"
 
@@ -61,8 +61,8 @@ def test_readmes_carry_the_required_sections() -> None:
         "rdv serve",
     )
     requirements = {
-        "README.md": (*common, "## Limitations", "## Licenses", "README.es.md"),
-        "README.es.md": (*common, "## Limitaciones", "## Licencias", "README.md"),
+        "README.md": (*common, "## Limitaciones", "## Licencias", "README.en.md"),
+        "README.en.md": (*common, "## Limitations", "## Licenses", "README.md"),
     }
     for name, required in requirements.items():
         text = _readme(name).read_text(encoding="utf-8")

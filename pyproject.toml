@@ -106,6 +106,7 @@ include = [
   "/src/rdv",
   "/tests",
   "/README.md",
+  "/README.en.md",
   "/LICENSE",
   "/CHANGELOG.md",
   "/pyproject.toml",

@@ -23,7 +23,7 @@ from typing import Any
 
 START_MARKER = "<!-- metrics:start -->"
 END_MARKER = "<!-- metrics:end -->"
-DEFAULT_README = ("README.md", "README.es.md")
+DEFAULT_README = ("README.md", "README.en.md")
 DEFAULT_REPORTS = Path("reports/v1")
 
 # S10 minimum bar: mAP@0.5, mAP@0.5:0.95 and every class AP@0.5.
@@ -110,7 +110,7 @@ def status_lines(metrics: dict[str, Any]) -> tuple[bool, list[str]]:
 
 
 def render_block(metrics: dict[str, Any], benchmark: dict[str, Any] | None) -> str:
-    """Build the Markdown block shared by the English and Spanish READMEs."""
+    """Build the Markdown block shared by README.md (Spanish) and README.en.md (English)."""
     values = metrics["metrics"]
     passes, status = status_lines(metrics)
     rows: list[tuple[str, str]] = [
@@ -197,8 +197,8 @@ def main(argv: list[str] | None = None) -> int:
         found = False
         for readme in readmes:
             if not readme.is_file():
-                # README.es.md is created by T16; until then the English file
-                # is the only one that exists on a fresh checkout.
+                # A partial checkout may hold only one of the two READMEs; the
+                # missing one is skipped and the other is still rendered.
                 continue
             update_readme(readme, block, check=args.check)
             found = True

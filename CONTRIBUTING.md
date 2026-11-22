@@ -48,7 +48,7 @@ Tests are deterministic and offline by default (`pytest-socket`); use
   [docs/DATA.md](docs/DATA.md).
 - Update the relevant doc when behavior changes; record a significant
   decision as a new ADR in [docs/adr/](docs/adr/README.md).
-- Code, comments and UI strings are in English; `README.es.md` and Spanish
+- Code, comments and UI strings are in English; `README.md` and Spanish
   class labels/UI translations are the exceptions.
 
 ## Pull requests

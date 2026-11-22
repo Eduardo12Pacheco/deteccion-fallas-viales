@@ -22,7 +22,7 @@ D16 retry policy, so the presentation must be derived mechanically from
   artifact are not.
 - `scripts/render_readme_metrics.py` renders the Markdown between
   `<!-- metrics:start -->` and `<!-- metrics:end -->` in `README.md` and
-  `README.es.md` from those reports. It also evaluates S10 and prints
+  `README.en.md` from those reports. It also evaluates S10 and prints
   `PASS (>= min bar)` or `BELOW TARGET` with the failing values.
 - `--check` exits non-zero when a README block differs from what the reports
   would render, so CI can reject an edited number.

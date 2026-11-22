@@ -8,7 +8,6 @@ from typing import Annotated
 import typer
 
 from rdv import composition
-from rdv.adapters.reporting.detections_json import dumps_document
 from rdv.application.benchmark import benchmark_model
 from rdv.config.settings import Settings
 from rdv.entrypoints.cli.console import configure, run
@@ -49,7 +48,7 @@ def benchmark(
         )
         try:
             out.parent.mkdir(parents=True, exist_ok=True)
-            out.write_text(dumps_document(result.as_dict()), encoding="utf-8")
+            out.write_text(composition.dumps_json_document(result.as_dict()), encoding="utf-8")
         except OSError as exc:
             raise MediaError(f"Cannot write benchmark report {out}: {exc}") from exc
         cpu = result.cpu

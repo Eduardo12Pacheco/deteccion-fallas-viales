@@ -8,7 +8,6 @@ from typing import Annotated
 import typer
 
 from rdv import composition
-from rdv.adapters.media.images import VIDEO_EXTENSIONS
 from rdv.application.detect_image import detect_images
 from rdv.application.detect_video import DEFAULT_ANALYSIS_FPS, detect_video
 from rdv.config.settings import Settings
@@ -60,8 +59,8 @@ def detect(
     def action() -> None:
         if not paths:
             raise MediaError("No input images or videos were provided")
-        video_paths = [path for path in paths if path.suffix.lower() in VIDEO_EXTENSIONS]
-        image_paths = [path for path in paths if path.suffix.lower() not in VIDEO_EXTENSIONS]
+        video_paths = [path for path in paths if composition.is_video_path(path)]
+        image_paths = [path for path in paths if not composition.is_video_path(path)]
         if not video_paths and (analysis_fps is not None or max_frames is not None):
             raise MediaError("--analysis-fps and --max-frames only apply to video inputs")
         overrides: dict[str, object] = {}

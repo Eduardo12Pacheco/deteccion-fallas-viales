@@ -10,7 +10,6 @@ from rich.console import Console
 from rich.table import Table
 
 from rdv import composition
-from rdv.adapters.models.store import CachedModelStore
 from rdv.application import manage_models
 from rdv.config.settings import Settings
 from rdv.entrypoints.cli.console import format_mib, run
@@ -37,7 +36,9 @@ def _settings(model_dir: Path | None) -> Settings:
     return Settings.from_env(model_dir=model_dir)
 
 
-def _store(manifest: Path | None, model_dir: Path | None) -> tuple[Settings, CachedModelStore]:
+def _store(
+    manifest: Path | None, model_dir: Path | None
+) -> tuple[Settings, composition.CachedModelStore]:
     settings = _settings(model_dir)
     return settings, composition.build_model_store(
         settings, manifest=composition.load_model_manifest(manifest)

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -23,17 +23,24 @@ from rdv.adapters.datasets.rdd2022 import (
 )
 from rdv.adapters.datasets.remote_zip import (
     DEFAULT_BLOCK_SIZE,
-    DatasetLock,
-    RemoteZipArchive,
+)
+from rdv.adapters.datasets.remote_zip import (
+    CountryPin as CountryPin,  # explicit re-exports: entrypoints annotate with these (D9)
+)
+from rdv.adapters.datasets.remote_zip import (
+    DatasetLock as DatasetLock,
+)
+from rdv.adapters.datasets.remote_zip import (
+    RemoteZipArchive as RemoteZipArchive,
 )
 from rdv.adapters.inference.onnx_detector import OnnxDetector
 from rdv.adapters.inference.preprocess import INPUT_SIZE
 from rdv.adapters.inference.providers import available_providers
-from rdv.adapters.media.images import PillowImageSource
+from rdv.adapters.media.images import VIDEO_EXTENSIONS, PillowImageSource
 from rdv.adapters.media.renderer import PillowRenderer
 from rdv.adapters.models.manifest import ModelManifest, default_manifest_path
-from rdv.adapters.models.store import CachedModelStore
-from rdv.adapters.reporting.detections_json import DetectionsJsonWriter
+from rdv.adapters.models.store import CachedModelStore as CachedModelStore
+from rdv.adapters.reporting.detections_json import DetectionsJsonWriter, dumps_document
 from rdv.adapters.reporting.summary_md import SummaryWriter
 from rdv.application.ports import (
     DEFAULT_SCORE_THRESHOLD,
@@ -315,6 +322,16 @@ def build_detections_writer() -> DetectionsJsonWriter:
 def build_summary_writer() -> SummaryWriter:
     """Aggregate summary writer (JSON and Markdown from one view-model)."""
     return SummaryWriter()
+
+
+def dumps_json_document(document: Mapping[str, Any]) -> str:
+    """Serialize a CLI report document with the deterministic detections writer format."""
+    return dumps_document(document)
+
+
+def is_video_path(path: Path) -> bool:
+    """Return whether ``path`` carries a video extension the detector can decode (S6)."""
+    return path.suffix.lower() in VIDEO_EXTENSIONS
 
 
 def build_evaluation_report_writer() -> EvaluationReportWriterPort:

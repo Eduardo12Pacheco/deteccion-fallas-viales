@@ -113,3 +113,8 @@ def test_local_model_path_uses_the_published_manifest_entry(monkeypatch, tmp_pat
 
     assert captured["model_id"] == "demo"
     assert captured["score_threshold"] == 0.01
+
+
+def test_is_video_path_matches_the_video_extensions_case_insensitively() -> None:
+    assert composition.is_video_path(Path("clip.MP4"))
+    assert not composition.is_video_path(Path("photo.jpg"))

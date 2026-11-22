@@ -17,7 +17,6 @@ from rich.console import Console
 from rich.table import Table
 
 from rdv import composition
-from rdv.adapters.datasets.remote_zip import CountryPin, DatasetLock, RemoteZipArchive
 from rdv.application.prepare_dataset import prepare_dataset
 from rdv.config.settings import Settings
 from rdv.errors import DatasetError, RdvError
@@ -70,7 +69,7 @@ def _progress(label: str) -> Callable[[int, int], None]:
     return callback
 
 
-def _verify_archive(path: Path, pin: CountryPin) -> tuple[int, str]:
+def _verify_archive(path: Path, pin: composition.CountryPin) -> tuple[int, str]:
     if not path.is_file():
         raise DatasetError(f"Missing downloaded archive: {path}")
     if path.stat().st_size != pin.size:
@@ -121,7 +120,9 @@ def _extract_country(archive_path: Path, root: Path, country: str) -> None:
     marker.write_text(archive_path.name + "\n", encoding="utf-8")
 
 
-def _extract_norway(archive: RemoteZipArchive, pin: CountryPin, root: Path, count: int) -> int:
+def _extract_norway(
+    archive: composition.RemoteZipArchive, pin: composition.CountryPin, root: Path, count: int
+) -> int:
     if count <= 0:
         return 0
     nested = archive.open_nested(pin)
@@ -175,12 +176,12 @@ def _extract_norway(archive: RemoteZipArchive, pin: CountryPin, root: Path, coun
 
 
 def _download_country(
-    archive: RemoteZipArchive,
-    lock: DatasetLock,
+    archive: composition.RemoteZipArchive,
+    lock: composition.DatasetLock,
     lock_path: Path,
     settings: Settings,
     country: str,
-) -> DatasetLock:
+) -> composition.DatasetLock:
     pin = lock.country(country)
     destination = _downloads(settings) / f"{country}.zip"
     if destination.is_file():
@@ -210,7 +211,9 @@ def _download_country(
     return lock
 
 
-def _download_outer(archive: RemoteZipArchive, lock: DatasetLock, settings: Settings) -> Path:
+def _download_outer(
+    archive: composition.RemoteZipArchive, lock: composition.DatasetLock, settings: Settings
+) -> Path:
     destination = _downloads(settings) / "RDD2022_outer.zip"
     if destination.is_file():
         md5 = hashlib.md5(usedforsecurity=False)
@@ -231,7 +234,7 @@ def _download_outer(archive: RemoteZipArchive, lock: DatasetLock, settings: Sett
     return destination
 
 
-def _extract_inner_from_outer(outer: Path, pin: CountryPin, destination: Path) -> None:
+def _extract_inner_from_outer(outer: Path, pin: composition.CountryPin, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     part = destination.with_name(destination.name + ".part")
     with (
